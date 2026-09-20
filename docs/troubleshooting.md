@@ -1,7 +1,7 @@
 # Troubleshooting
 
-Proven failure on this box: SteamVR `vrcompositor` starts, desktop preview can
-show the game, Vive panels stay black.
+Proven failure (AMD + SteamVR on Linux): `vrcompositor` starts, desktop
+preview can show the game, Vive panels stay black.
 
 ```
 Vulkan wait-for-present-ID support is present, and will be used
@@ -11,39 +11,45 @@ WaitForPendingPresent: failed to wait for present
 `disableLinuxWaitForPresent` in `steamvr.vrsettings` did **not** light the
 panels. Stop routing through Valve's compositor. This stack is Monado.
 
-## Session must be X11
+Run `./vive-doctor.sh` first.
+
+## Session
 
 ```
 echo $XDG_SESSION_TYPE
 ```
 
-Must print `x11`.
+`x11` is the proven Vive DRM-lease path. AMD + KDE/wlroots Wayland can work.
+**GNOME Wayland** often cannot lease the HMD — log into **GNOME on Xorg**
+(or Plasma X11).
 
-If it prints `wayland`: **stop**. Log out. At the GDM/GNOME greeter, click the
-gear and choose **Pop!_OS** / **GNOME on Xorg**. Do not try to make this work
-on GNOME Wayland — GNOME's compositor does not DRM-lease the Vive for us here,
-and the machine is required to stay on X11.
+## HMD connector
 
-## HDMI is the Vive, DisplayPort is the desktop
-
-Desktop is 3440×1440 on DisplayPort. Vive 1st gen is HDMI + USB.
+Vive 1st gen is usually HDMI. Vive Pro / Pro 2 are usually DisplayPort.
 
 ```
+./vive-doctor.sh
+# or
 cat /sys/class/drm/card*-HDMI-A-*/status
+cat /sys/class/drm/card*-DP-*/status
 ```
 
-At least one HDMI connector must be `connected` when the Vive is plugged in
+At least one connector must be `connected` when the headset is plugged in
 and powered.
 
-Also check:
-
 ```
-xrandr --prop | grep -A2 -i 'hdmi\|non-desktop'
+xrandr --prop | grep -A2 -i 'hdmi\|dp-\|non-desktop'
 ```
 
-The HMD should show `non-desktop: 1`. If the Vive appears as a third desktop
-monitor, the kernel quirk did not mark it non-desktop and Monado cannot take a
-clean lease — unplug/replug the Vive power, then HDMI, then USB.
+The HMD should show `non-desktop: 1`. If it appears as an extra desktop
+monitor, unplug/replug power, then the video cable, then USB.
+
+## AMD only (RADV)
+
+```
+echo $AMD_VULKAN_ICD    # must be RADV
+# uninstall amdvlk / amdgpu-pro if present
+```
 
 ## Preview works, lenses black
 

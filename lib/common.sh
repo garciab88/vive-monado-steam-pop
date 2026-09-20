@@ -19,7 +19,7 @@ vive_source_env() {
   source "${REPO_ROOT}/vive.env"
 }
 
-# Leave two cores for the 3440×1440 desktop during compiles.
+# Leave two cores for the desktop during compiles.
 vive_jobs() {
   local n jobs
   n="$(nproc 2>/dev/null || echo 2)"
@@ -28,6 +28,77 @@ vive_jobs() {
     jobs=1
   fi
   printf '%s' "$jobs"
+}
+
+vive_os_id() {
+  # shellcheck disable=SC1091
+  if [[ -f /etc/os-release ]]; then
+    . /etc/os-release
+    printf '%s' "${ID:-unknown}"
+  else
+    printf 'unknown'
+  fi
+}
+
+vive_os_like() {
+  # shellcheck disable=SC1091
+  if [[ -f /etc/os-release ]]; then
+    . /etc/os-release
+    printf '%s' "${ID_LIKE:-${ID:-unknown}}"
+  else
+    printf 'unknown'
+  fi
+}
+
+# debian | fedora | arch | unknown
+vive_pkg_family() {
+  local id like
+  id="$(vive_os_id)"
+  like="$(vive_os_like)"
+  case "$id" in
+    debian|ubuntu|pop|linuxmint|elementary|zorin|neon|kali)
+      printf 'debian'; return 0 ;;
+    fedora|rhel|centos|rocky|almalinux|nobara|bazzite)
+      printf 'fedora'; return 0 ;;
+    arch|manjaro|endeavouros|cachyos|garuda|artix)
+      printf 'arch'; return 0 ;;
+  esac
+  case "$like" in
+    *debian*|*ubuntu*) printf 'debian'; return 0 ;;
+    *fedora*|*rhel*) printf 'fedora'; return 0 ;;
+    *arch*) printf 'arch'; return 0 ;;
+  esac
+  if command -v apt-get >/dev/null 2>&1; then
+    printf 'debian'; return 0
+  fi
+  if command -v dnf >/dev/null 2>&1; then
+    printf 'fedora'; return 0
+  fi
+  if command -v pacman >/dev/null 2>&1; then
+    printf 'arch'; return 0
+  fi
+  printf 'unknown'
+}
+
+vive_steam_root() {
+  if [[ -n "${VIVE_STEAM_ROOT:-}" && -d "${VIVE_STEAM_ROOT}" ]]; then
+    printf '%s' "${VIVE_STEAM_ROOT}"
+    return 0
+  fi
+  local d
+  for d in \
+    "${HOME}/.steam/debian-installation" \
+    "${HOME}/.steam/steam" \
+    "${HOME}/.steam/root" \
+    "${HOME}/.local/share/Steam" \
+    "${HOME}/.var/app/com.valvesoftware.Steam/.local/share/Steam"
+  do
+    if [[ -d "${d}/steamapps" || -x "${d}/steam.sh" || -d "${d}/config" ]]; then
+      printf '%s' "$d"
+      return 0
+    fi
+  done
+  return 1
 }
 
 vive_runtime_dir() {
@@ -44,23 +115,57 @@ vive_ipc_path() {
 
 vive_require_x11() {
   local st="${XDG_SESSION_TYPE:-}"
-  if [[ "$st" != "x11" ]]; then
-    vive_err "XDG_SESSION_TYPE is '${st:-unset}', expected x11."
-    vive_err "This box must stay on GNOME on Xorg. Log out, click the gear, pick 'Pop!_OS' / 'GNOME on Xorg'."
-    vive_err "Wayland: stop. Do not continue."
-    return 1
+  case "$st" in
+    x11)
+      return 0
+      ;;
+    wayland)
+      vive_warn "XDG_SESSION_TYPE=wayland. Xorg is the proven Vive DRM-lease path."
+      vive_warn "AMD + KDE/wlroots can work. GNOME Wayland often cannot lease the HMD."
+      vive_warn "If the panels stay black, log into an Xorg session and run Vive again."
+      return 0
+      ;;
+    *)
+      vive_err "XDG_SESSION_TYPE is '${st:-unset}'. Need an Xorg session (or AMD Wayland on KDE/wlroots)."
+      vive_err "At the greeter: gear menu → 'GNOME on Xorg' / 'Plasma (X11)' / your distro's Xorg session."
+      return 1
+      ;;
+  esac
+}
+
+vive_amd_ok() {
+  local pci icd
+  pci="$(lspci 2>/dev/null | grep -Ei 'VGA|3D|Display' || true)"
+  if ! printf '%s' "$pci" | grep -qiE 'AMD|ATI|Advanced Micro Devices'; then
+    vive_warn "no AMD GPU in lspci. This stack is Mesa RADV + DRM lease."
+    vive_warn "Nvidia/Intel wired HMDs are a different fight. You can still try."
   fi
+  shopt -s nullglob
+  for icd in /usr/share/vulkan/icd.d/*amdvlk*.json /etc/vulkan/icd.d/*amdvlk*.json \
+             /usr/share/vulkan/icd.d/amd_icd*.json; do
+    if [[ -e "$icd" ]]; then
+      vive_warn "amdvlk ICD present (${icd}). It cannot DRM-lease the Vive."
+      vive_warn "uninstall amdvlk / amdgpu-pro. Keep mesa RADV. AMD_VULKAN_ICD=RADV is set."
+    fi
+  done
+  shopt -u nullglob
   return 0
 }
 
-vive_hdmi_status() {
+vive_drm_status() {
   local f status
   shopt -s nullglob
-  for f in /sys/class/drm/card*-HDMI-A-*/status; do
+  for f in /sys/class/drm/card*-HDMI-A-*/status \
+           /sys/class/drm/card*-DP-*/status \
+           /sys/class/drm/card*-DisplayPort-*/status; do
     status="$(cat "$f" 2>/dev/null || true)"
     printf '%s %s\n' "$f" "$status"
   done
   shopt -u nullglob
+}
+
+vive_hdmi_status() {
+  vive_drm_status
 }
 
 vive_kill_steamvr() {
@@ -122,13 +227,16 @@ vive_steam_cmd() {
     command -v steam
     return 0
   fi
-  local c
+  local root c
+  root="$(vive_steam_root || true)"
   for c in \
-    "${STEAM_ROOT_DEFAULT}/steam.sh" \
+    ${root:+"${root}/steam.sh"} \
+    "${HOME}/.steam/debian-installation/steam.sh" \
     "${HOME}/.steam/steam/steam.sh" \
-    "${HOME}/.steam/root/steam.sh"
+    "${HOME}/.steam/root/steam.sh" \
+    "${HOME}/.local/share/Steam/steam.sh"
   do
-    if [[ -x "$c" ]]; then
+    if [[ -n "$c" && -x "$c" ]]; then
       printf '%s' "$c"
       return 0
     fi
@@ -153,15 +261,99 @@ vive_print_beat_saber_launch_options() {
 }
 
 vive_steamapps_dirs() {
-  local d
-  for d in \
-    "${STEAM_ROOT_DEFAULT}/steamapps" \
-    "${HOME}/.steam/steam/steamapps" \
-    "${HOME}/.steam/root/steamapps" \
-    "${HOME}/.local/share/Steam/steamapps"
-  do
-    [[ -d "$d" ]] && printf '%s\n' "$d"
-  done | awk 'BEGIN{seen[""]=1} !seen[$0]++'
+  python3 - <<'PY'
+from pathlib import Path
+import os, re
+home = Path.home()
+forced = os.environ.get("VIVE_STEAM_ROOT", "").strip()
+candidates = []
+if forced:
+    candidates.append(Path(forced))
+candidates += [
+    home / ".steam/debian-installation",
+    home / ".steam/steam",
+    home / ".steam/root",
+    home / ".local/share/Steam",
+    home / ".var/app/com.valvesoftware.Steam/.local/share/Steam",
+]
+seen = set()
+roots = []
+for c in candidates:
+    try:
+        c = c.resolve()
+    except Exception:
+        continue
+    if c in seen:
+        continue
+    if (c / "steamapps").is_dir() or (c / "steam.sh").is_file():
+        seen.add(c)
+        roots.append(c)
+
+def libraries(root):
+    out = [root / "steamapps"]
+    vdf = root / "steamapps" / "libraryfolders.vdf"
+    if not vdf.is_file():
+        return out
+    try:
+        text = vdf.read_text(errors="replace")
+    except OSError:
+        return out
+    for m in re.finditer(r'"path"\s+"([^"]+)"', text):
+        p = Path(m.group(1)) / "steamapps"
+        out.append(p)
+    return out
+
+printed = set()
+for root in roots:
+    for d in libraries(root):
+        try:
+            d = d.resolve()
+        except Exception:
+            continue
+        if d in printed or not d.is_dir():
+            continue
+        printed.add(d)
+        print(d)
+PY
+}
+
+vive_list_installed_games() {
+  local dirs
+  dirs="$(vive_steamapps_dirs || true)"
+  VIVE_STEAMAPPS_DIRS="$dirs" python3 - <<'PY'
+import os, re, sys
+from pathlib import Path
+raw = os.environ.get("VIVE_STEAMAPPS_DIRS", "")
+dirs = [Path(x) for x in raw.splitlines() if x.strip()]
+seen = set()
+rows = []
+for d in dirs:
+    try:
+        d = d.resolve()
+    except Exception:
+        continue
+    if d in seen or not d.is_dir():
+        continue
+    seen.add(d)
+    for p in sorted(d.glob("appmanifest_*.acf")):
+        try:
+            text = p.read_text(errors="replace")
+        except OSError:
+            continue
+        appid = re.search(r'"appid"\s+"(\d+)"', text)
+        name = re.search(r'"name"\s+"([^"]+)"', text)
+        if appid and name:
+            rows.append((int(appid.group(1)), name.group(1)))
+uniq = {}
+for appid, name in rows:
+    uniq[appid] = name
+if not uniq:
+    sys.stderr.write("vive-monado: no Steam appmanifest_*.acf found\n")
+    sys.exit(1)
+width = max(len(str(i)) for i in uniq)
+for appid in sorted(uniq):
+    print(f"{str(appid).rjust(width)}  {uniq[appid]}")
+PY
 }
 
 vive_titles_file() {
@@ -207,49 +399,6 @@ vive_list_known_titles() {
     { printf "%-8s  %-20s  %s\n", $1, $2, $3 }
   ' "$file"
 }
-
-vive_list_installed_games() {
-  python3 - <<'PY'
-import re, sys
-from pathlib import Path
-home = Path.home()
-dirs = [
-    home / ".steam/debian-installation/steamapps",
-    home / ".steam/steam/steamapps",
-    home / ".steam/root/steamapps",
-    home / ".local/share/Steam/steamapps",
-]
-seen = set()
-rows = []
-for d in dirs:
-    try:
-        d = d.resolve()
-    except Exception:
-        continue
-    if d in seen or not d.is_dir():
-        continue
-    seen.add(d)
-    for p in sorted(d.glob("appmanifest_*.acf")):
-        try:
-            text = p.read_text(errors="replace")
-        except OSError:
-            continue
-        appid = re.search(r'"appid"\s+"(\d+)"', text)
-        name = re.search(r'"name"\s+"([^"]+)"', text)
-        if appid and name:
-            rows.append((int(appid.group(1)), name.group(1)))
-uniq = {}
-for appid, name in rows:
-    uniq[appid] = name
-if not uniq:
-    sys.stderr.write("vive-monado: no Steam appmanifest_*.acf found\n")
-    sys.exit(1)
-width = max(len(str(i)) for i in uniq)
-for appid in sorted(uniq):
-    print(f"{str(appid).rjust(width)}  {uniq[appid]}")
-PY
-}
-
 
 vive_check_cap_sys_nice() {
   local bin

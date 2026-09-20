@@ -16,8 +16,8 @@ if vive_steamvr_running; then
   exit 1
 fi
 
-echo "----- HDMI connectors -----"
-vive_hdmi_status || true
+echo "----- DRM connectors (HMD is HDMI or DP, status=connected) -----"
+vive_drm_status || true
 echo "---------------------------"
 
 IPC="$(vive_ipc_path)"

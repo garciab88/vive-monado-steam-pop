@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Idempotent Pop!_OS 24.04 setup: deps + standalone Monado + xrizer prefix.
+# Idempotent setup: deps + standalone Monado + xrizer prefix.
+# Debian/Ubuntu/Pop, Fedora/Nobara, Arch/CachyOS. AMD RADV. Vive 2016+.
 # Does not download or launch Envision.
 set -euo pipefail
 
@@ -26,6 +27,7 @@ for arg in "$@"; do
     -h|--help)
       echo "Usage: $0 [--skip-build] [--rebuild]"
       echo "Installs deps, xr-hardware udev, environment.d, then builds Monado + xrizer."
+      echo "Debian/Ubuntu/Pop, Fedora, Arch. AMD RADV. Vive / Pro / Pro Eye / Pro 2."
       echo "No Envision. Rebuild later with ./build.sh or $0 --rebuild."
       exit 0
       ;;
@@ -46,67 +48,81 @@ as_root() {
 }
 
 pkg_installed() {
-  dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -q 'install ok installed'
+  case "$(vive_pkg_family)" in
+    debian) dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -q 'install ok installed' ;;
+    fedora) rpm -q "$1" >/dev/null 2>&1 ;;
+    arch) pacman -Q "$1" >/dev/null 2>&1 ;;
+    *) return 1 ;;
+  esac
+}
+
+install_packages_debian() {
+  vive_log "apt packages (Debian/Ubuntu/Pop)"
+  as_root dpkg --add-architecture i386 || true
+  as_root apt-get update -y
+  local pkgs=(
+    git curl ca-certificates build-essential cmake ninja-build pkg-config python3
+    mesa-vulkan-drivers mesa-vulkan-drivers:i386 libvulkan1 libgl1-mesa-dri
+    libopenxr-loader1 libopenxr-dev libhidapi-hidraw0 libusb-1.0-0 udev
+    glslang-tools libdrm-dev libgbm-dev libegl1-mesa-dev libgl1-mesa-dev
+    libvulkan-dev libx11-xcb-dev libxcb-randr0-dev libx11-dev libxrandr-dev
+    libxxf86vm-dev libusb-1.0-0-dev libhidapi-dev libudev-dev libsystemd-dev
+    libeigen3-dev libbsd-dev libcjson-dev rustc cargo desktop-file-utils
+  )
+  as_root apt-get install -y --no-install-recommends "${pkgs[@]}" \
+    || as_root apt-get install -y --no-install-recommends \
+         git curl ca-certificates build-essential cmake ninja-build pkg-config python3 \
+         mesa-vulkan-drivers libvulkan1 libopenxr-loader1 libopenxr-dev \
+         libdrm-dev libvulkan-dev libx11-xcb-dev libxcb-randr0-dev \
+         libusb-1.0-0-dev libhidapi-dev libeigen3-dev glslang-tools \
+         libsystemd-dev rustc cargo desktop-file-utils || true
+  as_root apt-get install -y mesa-vulkan-drivers:i386 2>/dev/null || \
+    vive_warn "32-bit mesa not installed — Proton VR titles need it"
+  as_root apt-get install -y xr-hardware 2>/dev/null || true
+}
+
+install_packages_fedora() {
+  vive_log "dnf packages (Fedora/Nobara/Bazzite)"
+  as_root dnf install -y --setopt=install_weak_deps=False \
+    git curl cmake ninja-build gcc-c++ pkgconf-pkg-config python3 \
+    mesa-vulkan-drivers vulkan-loader vulkan-loader-devel \
+    libdrm-devel mesa-libEGL-devel mesa-libGL-devel \
+    libX11-devel libXrandr-devel libXxf86vm-devel libxcb-devel \
+    systemd-devel eigen3-devel hidapi-devel libusbx-devel \
+    glslang rust cargo desktop-file-utils \
+    openxr-devel 2>/dev/null \
+    || as_root dnf install -y git cmake ninja-build gcc-c++ python3 \
+         mesa-vulkan-drivers vulkan-loader-devel libdrm-devel \
+         libX11-devel systemd-devel eigen3-devel hidapi-devel \
+         libusbx-devel glslang rust cargo || true
+  as_root dnf install -y mesa-vulkan-drivers.i686 vulkan-loader.i686 2>/dev/null || \
+    vive_warn "32-bit mesa not installed — Proton VR titles need it"
+}
+
+install_packages_arch() {
+  vive_log "pacman packages (Arch/CachyOS/Manjaro)"
+  as_root pacman -Sy --needed --noconfirm \
+    git curl cmake ninja base-devel python mesa vulkan-radeon vulkan-icd-loader \
+    libdrm libx11 libxrandr libxxf86vm libxcb systemd eigen hidapi libusb \
+    glslang rust desktop-file-utils openxr \
+    || as_root pacman -Sy --needed --noconfirm git cmake ninja base-devel python mesa vulkan-radeon rust
+  as_root pacman -Sy --needed --noconfirm lib32-mesa lib32-vulkan-radeon lib32-vulkan-icd-loader 2>/dev/null || \
+    vive_warn "lib32 mesa not installed — Proton VR titles need it"
 }
 
 install_packages() {
-  vive_log "apt packages (idempotent)"
-  as_root apt-get update -y
-  local pkgs=(
-    git
-    curl
-    wget
-    unzip
-    ca-certificates
-    build-essential
-    cmake
-    ninja-build
-    pkg-config
-    python3
-    mesa-vulkan-drivers
-    mesa-vulkan-drivers:i386
-    libvulkan1
-    libgl1-mesa-dri
-    libopenxr-loader1
-    libopenxr-dev
-    libhidapi-hidraw0
-    libusb-1.0-0
-    udev
-    glslang-tools
-    libdrm-dev
-    libgbm-dev
-    libegl1-mesa-dev
-    libgl1-mesa-dev
-    libvulkan-dev
-    libx11-xcb-dev
-    libxcb-randr0-dev
-    libx11-dev
-    libxrandr-dev
-    libxxf86vm-dev
-    libusb-1.0-0-dev
-    libhidapi-dev
-    libudev-dev
-    libsystemd-dev
-    libeigen3-dev
-    libbsd-dev
-    libcjson-dev
-    rustc
-    cargo
-    desktop-file-utils
-  )
-  as_root dpkg --add-architecture i386 || true
-  as_root apt-get update -y
-
-  as_root apt-get install -y --no-install-recommends "${pkgs[@]}" \
-    || as_root apt-get install -y --no-install-recommends \
-         git curl wget unzip ca-certificates build-essential cmake ninja-build \
-         pkg-config python3 mesa-vulkan-drivers libvulkan1 \
-         libopenxr-loader1 libopenxr-dev desktop-file-utils \
-         libdrm-dev libvulkan-dev libx11-xcb-dev libxcb-randr0-dev \
-         libusb-1.0-0-dev libhidapi-dev libeigen3-dev glslang-tools \
-         libsystemd-dev rustc cargo || true
-
-  as_root apt-get install -y xr-hardware 2>/dev/null || true
+  local fam
+  fam="$(vive_pkg_family)"
+  vive_log "distro $(vive_os_id) family=${fam}"
+  case "$fam" in
+    debian) install_packages_debian ;;
+    fedora) install_packages_fedora ;;
+    arch) install_packages_arch ;;
+    *)
+      vive_err "unknown distro. Install git cmake ninja gcc python3 mesa RADV vulkan headers libdrm libX11 eigen hidapi libusb glslang rust, then ./build.sh"
+      return 1
+      ;;
+  esac
 }
 
 ensure_rust() {
@@ -244,17 +260,20 @@ chmod_scripts() {
   local s
   for s in install.sh kill-steamvr.sh launch-monado.sh launch-beat-saber.sh \
            launch-game.sh list-games.sh build.sh fallback-build.sh \
-           stop-monado.sh trim-prefix.sh vive-session.sh; do
+           stop-monado.sh trim-prefix.sh vive-session.sh vive-doctor.sh; do
     [[ -f "${SCRIPT_DIR}/${s}" ]] && chmod +x "${SCRIPT_DIR}/${s}"
   done
 }
 
 print_session_hint() {
   echo
-  echo "XDG_SESSION_TYPE=${XDG_SESSION_TYPE:-unset}  (must be x11)"
-  if [[ "${XDG_SESSION_TYPE:-}" != "x11" ]]; then
-    vive_warn "You are not on X11. Log into GNOME on Xorg before launching VR."
+  echo "XDG_SESSION_TYPE=${XDG_SESSION_TYPE:-unset}  (x11 is the proven Vive path)"
+  if [[ "${XDG_SESSION_TYPE:-}" == "wayland" ]]; then
+    vive_warn "Wayland: AMD KDE/wlroots can work. GNOME Wayland often cannot lease the HMD."
+  elif [[ "${XDG_SESSION_TYPE:-}" != "x11" ]]; then
+    vive_warn "Log into an Xorg session before launching VR."
   fi
+  vive_amd_ok || true
 }
 
 maybe_build() {
@@ -272,8 +291,8 @@ maybe_build() {
 }
 
 main() {
-  echo "=== vive-monado-steam-pop install (Pop!_OS 24.04 / X11 / RADV) ==="
-  echo "Standalone Monado + xrizer. No Envision. Success = frames in the Vive lenses."
+  echo "=== vive-monado-steam-pop install (AMD RADV, Vive 2016+) ==="
+  echo "Standalone Monado + xrizer. No Envision. Success = frames in both lenses."
   echo
   install_packages
   ensure_rust
@@ -284,6 +303,7 @@ main() {
   chmod_scripts
   maybe_build
   print_session_hint
+  "${SCRIPT_DIR}/vive-doctor.sh" || true
 
   echo
   echo "log out or reboot after udev/environment.d"

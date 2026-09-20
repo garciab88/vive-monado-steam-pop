@@ -1,11 +1,11 @@
 # vive-monado-steam-pop
 
-Linux VR stack for **one** Pop!_OS box: **any Steam VR title** renders on an
-HTC Vive **without Valve's `vrcompositor`**.
+Linux VR stack for **AMD + HTC Vive**: any Steam VR title renders on a Vive-family
+headset **without Valve's `vrcompositor`**.
 
 Standalone: **Monado + xrizer**, compiled locally. **No Envision.** SteamVR
 may stay installed so lighthouse room-setup data exists. It must not run as
-the compositor. Success is **frames in both Vive lenses** while
+the compositor. Success is **frames in both lenses** while
 `pgrep vrcompositor` is empty.
 
 ```
@@ -13,33 +13,31 @@ Steam VR title (Proton 9+ OpenVR/OpenXR, or native Linux OpenXR)
         │  OpenVR ──► xrizer (OpenComposite only as fallback)
         │  OpenXR ──► (direct)
         ▼
-     Monado          ← compositor + runtime, DRM-leases Vive HDMI
+     Monado          ← compositor + runtime, DRM-leases the HMD
         │
-   HTC Vive 1st gen
+   HTC Vive / Pro / Pro Eye / Pro 2
 ```
 
 Do not write a new Vulkan compositor. Do not debug SteamVR JSON. Do not enable
-SteamVR beta. Do not use ALVR or WiVRn. Extra hardware is not required.
-
-The title is just a Steam appid. Same compositor for every VR game.
+SteamVR beta. Do not use ALVR or WiVRn.
 
 **Daily: click Vive, then click a game in Steam.** Do not open SteamVR.
 Do not open Envision. After play: Stop Vive.
 
-See [docs/how.md](docs/how.md).
+See [docs/how.md](docs/how.md) and [docs/hardware.md](docs/hardware.md).
 
-## Hardware (this machine)
+## Who this is for
 
-| Piece | Value |
+| Need | This stack |
 |---|---|
-| Distro | Pop!_OS 24.04, **GNOME on Xorg** (must stay X11) |
-| Kernel | 7.0.11-76070011-generic |
-| Board | MSI MAG B550 Tomahawk Max WiFi |
-| CPU | Ryzen 5 5500 |
-| GPU | ASRock RX 6600 8GB, **Mesa RADV only** (no amdvlk, no amdgpu-pro) |
-| HMD | HTC Vive 1st gen, HDMI + USB |
-| Desktop | 3440×1440 on DisplayPort |
-| Steam | `~/.steam/debian-installation/` |
+| GPU | AMD, **Mesa RADV** (no amdvlk) |
+| HMD | Vive 2016, Vive Pro, Vive Pro Eye, Vive Pro 2 |
+| Distro | Debian/Ubuntu/Pop, Fedora/Nobara, Arch/CachyOS |
+| Session | Xorg proven; AMD KDE/wlroots Wayland possible |
+| Games | Any Steam VR title, Proton 9+ |
+
+Reference machine (where `vrcompositor` was proven black-lens): Pop!_OS 24.04
+GNOME Xorg, RX 6600, Vive 1st gen HDMI. Other AMD boxes use the same path.
 
 Proven failure: `vrcompositor` starts, desktop preview can show the game, Vive
 panels stay black.
@@ -110,6 +108,7 @@ You do **not** paste per-game launch options if Steam was started this way.
 | `vive.env` | RADV, lighthouse, scale 100%, no overlay/HUD/debug logs |
 | `kill-steamvr.sh` | Guard: kill Valve compositor if it wakes |
 | `vive-session.sh` | **Daily:** start Monado + Steam. `--stop` when done |
+| `vive-doctor.sh` | Print GPU, session, Steam path, DRM connectors |
 | `launch-monado.sh` | Start compositor only (used by vive-session) |
 | `stop-monado.sh` | Stop compositor after the session |
 | `launch-game.sh` | `./launch-game.sh <appid\|slug>` — any Steam VR title (`--list`, `--known`) |
@@ -119,6 +118,7 @@ You do **not** paste per-game launch options if Steam was started this way.
 ## Docs
 
 - [docs/how.md](docs/how.md) — why Vive was black, what you actually open
+- [docs/hardware.md](docs/hardware.md) — AMD + Vive family, distros, GPUs
 - [docs/games.md](docs/games.md) — any title, slugs, OpenVR vs OpenXR
 - [docs/steam-launch-options.md](docs/steam-launch-options.md) — the one line for every game
 - [docs/troubleshooting.md](docs/troubleshooting.md) — X11, HDMI, black lenses

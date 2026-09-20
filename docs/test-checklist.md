@@ -1,21 +1,20 @@
 # 15-minute test checklist
 
-Hardware already on the desk: Vive HDMI + USB, 3440×1440 DP desktop, RX 6600
-RADV, Pop!_OS 24.04 GNOME Xorg. Steam at `~/.steam/debian-installation/`.
+Any AMD RADV box, Vive 2016 / Pro / Pro Eye / Pro 2. Prefer an Xorg session.
 
-Target: a VR title visible in both Vive lenses, and `pgrep vrcompositor` empty.
-Any installed VR title is the pass — pick an appid from `./launch-game.sh --list`
-or a slug from `./launch-game.sh --known`.
+Target: a VR title visible in both lenses, and `pgrep vrcompositor` empty.
+Any installed VR title is the pass.
 
 ## 0:00 — session
 
-- [ ] `echo $XDG_SESSION_TYPE` → `x11`
-- [ ] If `wayland`: **stop**, log into GNOME on Xorg, restart the clock
+- [ ] `./vive-doctor.sh`
+- [ ] `echo $XDG_SESSION_TYPE` → `x11` (proven). Wayland on GNOME: log into Xorg.
+- [ ] GPU is AMD, RADV, no amdvlk
 
 ## 1:00 — cables
 
-- [ ] `cat /sys/class/drm/card*-HDMI-A-*/status` → at least one `connected`
-- [ ] `lsusb | grep -iE 'HTC|28de|0bb4'` shows the Vive / lighthouse dongles
+- [ ] `./vive-doctor.sh` shows an HDMI-A or DP connector `connected`
+- [ ] `lsusb | grep -iE 'HTC|28de|0bb4'` shows the headset / lighthouse dongles
 - [ ] Base stations powered (solid or slow-blink, not sleeping)
 
 ## 2:00 — install (first time only)

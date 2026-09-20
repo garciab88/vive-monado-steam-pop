@@ -15,6 +15,7 @@ fi
 
 vive_source_env
 vive_require_x11
+vive_amd_ok || true
 
 vive_log "this is not SteamVR. Do not click 'Play SteamVR'."
 "${SCRIPT_DIR}/launch-monado.sh"

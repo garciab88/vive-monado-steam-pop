@@ -177,6 +177,10 @@ EOF
 
 write_openvrpaths() {
   local runtime_dir="${PREFIX}/lib/xrizer"
+  local root cfg log
+  root="$(vive_steam_root || true)"
+  cfg="${root:-${HOME}/.steam/steam}/config"
+  log="${root:-${HOME}/.steam/steam}/logs"
   if [[ "$BUILD_OC" -eq 1 && -d "${PREFIX}/lib/opencomposite" ]]; then
     vive_warn "OpenComposite built. xrizer remains the default OpenVR layer."
     vive_warn "To switch: point openvrpaths.vrpath runtime at ${PREFIX}/lib/opencomposite"
@@ -184,15 +188,15 @@ write_openvrpaths() {
   mkdir -p "${HOME}/.config/openvr"
   cat >"${HOME}/.config/openvr/openvrpaths.vrpath" <<EOF
 {
-  "config": ["${HOME}/.steam/debian-installation/config"],
+  "config": ["${cfg}"],
   "external_drivers": [],
   "jsonid": "vrpathreg",
-  "log": ["${HOME}/.steam/debian-installation/logs"],
+  "log": ["${log}"],
   "runtime": ["${runtime_dir}"],
   "version": 1
 }
 EOF
-  vive_log "openvrpaths.vrpath runtime → ${runtime_dir}"
+  vive_log "openvrpaths.vrpath runtime → ${runtime_dir}  steam → ${root:-unset}"
 }
 
 setcap_monado() {
