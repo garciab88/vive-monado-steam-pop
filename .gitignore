@@ -1,0 +1,37 @@
+# Envision / AppImage downloads
+*.AppImage
+*.AppImage.zsync
+Envision-*.zip
+envision-artifacts/
+.local-opt/
+
+# Build trees (fallback-build.sh, Envision prefixes copied here)
+build/
+build-*/
+prefix/
+prefixes/
+.envision-prefix
+*.o
+*.so
+*.a
+CMakeCache.txt
+CMakeFiles/
+compile_commands.json
+
+# Rust
+target/
+Cargo.lock.bak
+
+# Editor / OS
+*~
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs / runtime
+*.log
+monado-service.pid
+.env.local
