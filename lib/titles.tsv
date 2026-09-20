@@ -1,0 +1,34 @@
+# appid	slug	name
+# Common Steam VR titles that run on this stack (Vive 1st gen + Monado + xrizer).
+# Bindings: Vive wands work on most of these; some default to Index/Knuckles.
+# Add a row, then ./launch-game.sh <slug>
+348250	earth-vr	Google Earth VR
+342180	arizona-sunshine	Arizona Sunshine
+359320	elite	Elite Dangerous
+438100	vrchat	VRChat
+448280	job-simulator	Job Simulator
+450390	the-lab	The Lab
+450540	h3vr	Hot Dogs, Horseshoes & Hand Grenades
+471710	rec-room	Rec Room
+546560	alyx	Half-Life: Alyx
+555160	pavlov	Pavlov VR
+578620	gorn	GORN
+611660	fallout4-vr	Fallout 4 VR
+611670	skyrim-vr	The Elder Scrolls V: Skyrim VR
+617830	superhot-vr	SUPERHOT VR
+620980	beat-saber	Beat Saber
+629730	blade-sorcery	Blade & Sorcery
+667970	vtol-vr	VTOL VR
+680380	walkabout	Walkabout Mini Golf
+740250	neos	Neos VR
+823500	boneworks	BONEWORKS
+846470	moss	Moss
+885000	synth-riders	Synth Riders
+916840	saints-sinners	The Walking Dead: Saints & Sinners
+965160	until-you-fall	Until You Fall
+1012790	into-the-radius	Into the Radius
+1079800	pistol-whip	Pistol Whip
+1592190	bonelab	BONELAB
+1966720	into-the-radius-2	Into the Radius 2
+2519830	resonite	Resonite
+275850	nms	No Man's Sky

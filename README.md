@@ -20,9 +20,8 @@ Steam VR title (Proton 9+ OpenVR/OpenXR, or native Linux OpenXR)
 Do not write a new Vulkan compositor. Do not debug SteamVR JSON. Do not enable
 SteamVR beta. Do not use ALVR or WiVRn. Extra hardware is not required.
 
-Beat Saber (`620980`) is the **smoke-test** title on this box, not a special
-path. Every other VR game uses the same compositor, the same env, and the
-same launch options.
+The title is just a Steam appid or a slug from `lib/titles.tsv`. Same
+compositor, same env, same launch options for every VR game.
 
 ## Hardware (this machine)
 
@@ -82,7 +81,8 @@ room setup if chaperone is missing.
 ```bash
 ./launch-monado.sh
 ./launch-game.sh --list          # installed Steam appids
-./launch-game.sh <appid>
+./launch-game.sh --known         # catalog slugs
+./launch-game.sh <appid|slug>
 ```
 
 Paste this on **every** VR title — Steam → Properties → Launch Options.
@@ -92,7 +92,7 @@ Windows titles: Proton 9+. Native Linux OpenXR titles: same line.
 PRESSURE_VESSEL_IMPORT_OPENXR_1_RUNTIMES=1 PRESSURE_VESSEL_FILESYSTEMS_RW=$XDG_RUNTIME_DIR/monado_comp_ipc AMD_VULKAN_ICD=RADV RADV_PERFTEST=vr %command%
 ```
 
-Smoke test: `./launch-game.sh 620980` (Beat Saber) or `./launch-beat-saber.sh`.
+Examples: `./launch-game.sh alyx` · `./launch-game.sh bonelab` · `./launch-game.sh 620980`
 
 ## Scripts
 
@@ -103,13 +103,13 @@ Smoke test: `./launch-game.sh 620980` (Beat Saber) or `./launch-beat-saber.sh`.
 | `vive.env` | RADV, lighthouse, compute compositor, pressure-vessel IPC |
 | `kill-steamvr.sh` | Guard: kill Valve compositor processes |
 | `launch-monado.sh` | Source env, kill SteamVR, start Envision profile or `monado-service`, wait for IPC |
-| `launch-game.sh` | `./launch-game.sh <appid>` — any Steam VR title |
-| `list-games.sh` | Print installed Steam appid + name (`launch-game.sh --list`) |
-| `launch-beat-saber.sh` | Alias for `./launch-game.sh 620980` |
+| `launch-game.sh` | `./launch-game.sh <appid\|slug>` — any Steam VR title (`--list`, `--known`) |
+| `list-games.sh` | Print installed Steam appid + name |
+| `lib/titles.tsv` | Slug catalog (alyx, bonelab, skyrim-vr, …) |
 
 ## Docs
 
-- [docs/games.md](docs/games.md) — any title, OpenVR vs OpenXR, finding appids
+- [docs/games.md](docs/games.md) — any title, slugs, OpenVR vs OpenXR
 - [docs/envision.md](docs/envision.md) — Lighthouse profile, first build, CLI
 - [docs/steam-launch-options.md](docs/steam-launch-options.md) — the one line for every game
 - [docs/troubleshooting.md](docs/troubleshooting.md) — X11, HDMI, black lenses

@@ -26,10 +26,9 @@ Then:
 
 ```
 ./launch-game.sh --list
-./launch-game.sh <appid>
+./launch-game.sh --known
+./launch-game.sh <appid|slug>
 ```
-
-Smoke test (Beat Saber): `./launch-game.sh 620980`
 
 ## What each token does
 

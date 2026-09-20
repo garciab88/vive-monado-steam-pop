@@ -173,7 +173,7 @@ EOF
 }
 
 vive_print_beat_saber_launch_options() {
-  vive_print_launch_options "Beat Saber (appid 620980) — smoke-test title"
+  vive_print_launch_options "any Steam VR title"
 }
 
 vive_steamapps_dirs() {
@@ -188,15 +188,48 @@ vive_steamapps_dirs() {
   done | awk 'BEGIN{seen[""]=1} !seen[$0]++'
 }
 
+vive_titles_file() {
+  printf '%s' "${REPO_ROOT}/lib/titles.tsv"
+}
+
 vive_resolve_appid() {
   local raw="${1,,}"
   raw="${raw// /-}"
-  case "$raw" in
-    beat-saber|beatsaber|bs) printf '620980' ;;
-    '' ) return 1 ;;
-    *[!0-9]*) return 1 ;;
-    *) printf '%s' "$raw" ;;
-  esac
+  if [[ -z "$raw" ]]; then
+    return 1
+  fi
+  if [[ "$raw" =~ ^[0-9]+$ ]]; then
+    printf '%s' "$raw"
+    return 0
+  fi
+  local file appid
+  file="$(vive_titles_file)"
+  [[ -f "$file" ]] || return 1
+  appid="$(awk -F '\t' -v s="$raw" '
+    $0 ~ /^#/ { next }
+    NF < 3 { next }
+    tolower($2) == s { print $1; exit }
+  ' "$file")"
+  if [[ -n "$appid" ]]; then
+    printf '%s' "$appid"
+    return 0
+  fi
+  return 1
+}
+
+vive_list_known_titles() {
+  local file
+  file="$(vive_titles_file)"
+  if [[ ! -f "$file" ]]; then
+    vive_err "missing ${file}"
+    return 1
+  fi
+  printf '%-8s  %-20s  %s\n' "appid" "slug" "name"
+  awk -F '\t' '
+    $0 ~ /^#/ { next }
+    NF < 3 { next }
+    { printf "%-8s  %-20s  %s\n", $1, $2, $3 }
+  ' "$file"
 }
 
 vive_list_installed_games() {

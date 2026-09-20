@@ -82,7 +82,7 @@ Without this, `XRT_COMPOSITOR_COMPUTE=1` hitch-steps on RADV.
 
 ## Proton must be 9+
 
-Windows VR titles (Beat Saber included) are OpenVR or OpenXR inside Proton.
+Windows VR titles are OpenVR or OpenXR inside Proton.
 Proton 9+ is what exposes OpenXR inside the container after xrizer satisfies
 the OpenVR check. Proton 8 and older will hunt for SteamVR and fail.
 

@@ -4,8 +4,8 @@ Hardware already on the desk: Vive HDMI + USB, 3440×1440 DP desktop, RX 6600
 RADV, Pop!_OS 24.04 GNOME Xorg. Steam at `~/.steam/debian-installation/`.
 
 Target: a VR title visible in both Vive lenses, and `pgrep vrcompositor` empty.
-Beat Saber (`620980`) is the default smoke test. Any other installed VR title
-is the same pass — swap the appid.
+Any installed VR title is the pass — pick an appid from `./launch-game.sh --list`
+or a slug from `./launch-game.sh --known`.
 
 ## 0:00 — session
 
@@ -46,7 +46,8 @@ is the same pass — swap the appid.
 
 ## 10:00 — game properties (any VR title)
 
-- [ ] `./launch-game.sh --list` — pick an appid (smoke test: `620980`)
+- [ ] `./launch-game.sh --list` — pick an installed appid
+- [ ] or `./launch-game.sh --known` — pick a slug (alyx, bonelab, …)
 - [ ] Compatibility: Proton 9.0 or newer if the title is Windows
 - [ ] Launch options exactly (same on every title):
 
