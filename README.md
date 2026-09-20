@@ -21,8 +21,12 @@ Steam VR title (Proton 9+ OpenVR/OpenXR, or native Linux OpenXR)
 Do not write a new Vulkan compositor. Do not debug SteamVR JSON. Do not enable
 SteamVR beta. Do not use ALVR or WiVRn. Extra hardware is not required.
 
-The title is just a Steam appid or a slug from `lib/titles.tsv`. Same
-compositor, same env, same launch options for every VR game.
+The title is just a Steam appid. Same compositor for every VR game.
+
+**Daily: click Vive, then click a game in Steam.** Do not open SteamVR.
+Do not open Envision. After play: Stop Vive.
+
+See [docs/how.md](docs/how.md).
 
 ## Hardware (this machine)
 
@@ -71,29 +75,30 @@ chmod +x *.sh
 ```
 
 `install.sh` installs packages, udev rules, then **compiles Monado + xrizer**
-(several minutes). Then **log out or reboot** (udev + `environment.d`).
-Confirm X11:
+(several minutes). Then **log out or reboot**. Confirm X11:
 
 ```bash
 echo $XDG_SESSION_TYPE    # must be x11
 ```
 
+**Once in Steam:** Settings → Compatibility → enable Steam Play for all titles,
+Proton 9 / 10 / Experimental.
+
+**Every day after that:**
+
 ```bash
-./launch-monado.sh
-./launch-game.sh --list          # installed Steam appids
-./launch-game.sh --known         # catalog slugs
-./launch-game.sh <appid|slug>
-./stop-monado.sh                 # after the session
+./vive-session.sh
 ```
 
-Paste this on **every** VR title — Steam → Properties → Launch Options.
-Windows titles: Proton 9+. Native Linux OpenXR titles: same line.
+Or click **Vive** in the GNOME app menu. Steam opens with Monado already
+holding the headset. Click any VR title. Do not start SteamVR.
 
-```
-PRESSURE_VESSEL_IMPORT_OPENXR_1_RUNTIMES=1 PRESSURE_VESSEL_FILESYSTEMS_RW=$XDG_RUNTIME_DIR/monado_comp_ipc AMD_VULKAN_ICD=RADV RADV_PERFTEST=vr %command%
+```bash
+./vive-session.sh --stop
 ```
 
-Examples: `./launch-game.sh alyx` · `./launch-game.sh bonelab` · `./launch-game.sh 620980`
+You do **not** paste per-game launch options if Steam was started this way.
+`./launch-game.sh` is optional. Details: [docs/how.md](docs/how.md).
 
 ## Scripts
 
@@ -103,16 +108,17 @@ Examples: `./launch-game.sh alyx` · `./launch-game.sh bonelab` · `./launch-gam
 | `build.sh` | Ultralight Monado + xrizer (`~/.local/opt/vive-monado`) |
 | `trim-prefix.sh` | Strip + drop cargo junk without recompiling |
 | `vive.env` | RADV, lighthouse, scale 100%, no overlay/HUD/debug logs |
-| `kill-steamvr.sh` | Guard: kill Valve compositor processes |
-| `launch-monado.sh` | Start `monado-service` only |
-| `stop-monado.sh` | Stop `monado-service` after the session |
+| `kill-steamvr.sh` | Guard: kill Valve compositor if it wakes |
+| `vive-session.sh` | **Daily:** start Monado + Steam. `--stop` when done |
+| `launch-monado.sh` | Start compositor only (used by vive-session) |
+| `stop-monado.sh` | Stop compositor after the session |
 | `launch-game.sh` | `./launch-game.sh <appid\|slug>` — any Steam VR title (`--list`, `--known`) |
 | `list-games.sh` | Print installed Steam appid + name |
 | `lib/titles.tsv` | Slug catalog (alyx, bonelab, skyrim-vr, …) |
 
 ## Docs
 
-- [docs/build.md](docs/build.md) — standalone compile, cmake flags, prefix
+- [docs/how.md](docs/how.md) — why Vive was black, what you actually open
 - [docs/games.md](docs/games.md) — any title, slugs, OpenVR vs OpenXR
 - [docs/steam-launch-options.md](docs/steam-launch-options.md) — the one line for every game
 - [docs/troubleshooting.md](docs/troubleshooting.md) — X11, HDMI, black lenses

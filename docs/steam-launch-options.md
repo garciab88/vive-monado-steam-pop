@@ -1,11 +1,13 @@
 # Steam launch options
 
-**Same line on every VR title.** Do not specialize it per game.
+**Daily path does not use this file.** Start Steam with `./vive-session.sh`
+(or the **Vive** menu entry). The environment is already on that Steam
+process. Click the game. Do not paste anything.
 
-Proton **must be 9 or newer** on Windows titles. OpenVR talks to Monado through
-**xrizer** (OpenComposite only if xrizer cannot start the title). Native Linux
-OpenXR titles still need the pressure-vessel tokens so the container can see
-Monado.
+This page is only if you launched Steam from the normal dock icon.
+
+Proton **must be 9 or newer** on Windows titles (Steam → Settings →
+Compatibility → enable Steam Play for all titles — once).
 
 Pressure-vessel (Steam Linux Runtime) does **not** import the host OpenXR
 runtime unless told to. It also cannot see Monado's compositor socket unless

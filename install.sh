@@ -11,7 +11,8 @@ PREFIX="${VIVE_MONADO_PREFIX:-${HOME}/.local/opt/vive-monado}"
 ENV_D_DIR="${HOME}/.config/environment.d"
 ENV_D_FILE="${ENV_D_DIR}/99-vive-monado.conf"
 DESKTOP_DIR="${HOME}/.local/share/applications"
-DESKTOP_FILE="${DESKTOP_DIR}/vive-monado-service.desktop"
+DESKTOP_FILE="${DESKTOP_DIR}/vive-monado.desktop"
+STOP_DESKTOP_FILE="${DESKTOP_DIR}/vive-monado-stop.desktop"
 XR_HARDWARE_GIT="https://gitlab.freedesktop.org/monado/utilities/xr-hardware.git"
 
 need_reboot_note=0
@@ -153,29 +154,50 @@ write_desktop_entry() {
   cat >"$DESKTOP_FILE" <<EOF
 [Desktop Entry]
 Type=Application
-Name=Monado (Vive)
-Comment=Start Monado compositor for the HTC Vive — not SteamVR
-Exec=${SCRIPT_DIR}/launch-monado.sh
+Name=Vive
+Comment=HTC Vive via Monado — starts compositor + Steam. Not SteamVR.
+Exec=${SCRIPT_DIR}/vive-session.sh
 Icon=applications-games
 Terminal=false
-Categories=Game;Utility;
-Keywords=VR;XR;Monado;Vive;OpenXR;
+Categories=Game;
+Keywords=VR;XR;Monado;Vive;OpenXR;Steam;
+StartupNotify=false
+EOF
+  cat >"$STOP_DESKTOP_FILE" <<EOF
+[Desktop Entry]
+Type=Application
+Name=Stop Vive
+Comment=Stop Monado compositor after a VR session
+Exec=${SCRIPT_DIR}/stop-monado.sh
+Icon=application-exit
+Terminal=false
+Categories=Game;
+Keywords=VR;Monado;Vive;
 StartupNotify=false
 EOF
   if have update-desktop-database; then
     update-desktop-database "$DESKTOP_DIR" >/dev/null 2>&1 || true
   fi
-  vive_log "desktop entry ${DESKTOP_FILE}"
+  vive_log "desktop entries ${DESKTOP_FILE} ${STOP_DESKTOP_FILE}"
 }
 
 write_environment_d() {
   mkdir -p "$ENV_D_DIR"
-  cat >"$ENV_D_FILE" <<'EOF'
-# vive-monado-steam-pop
-# Tell Steam Linux Runtime / Proton to import the host OpenXR 1 runtime
-# (Monado via ~/.config/openxr/1/active_runtime.json).
+  local uid ipc json vr
+  uid="$(id -u)"
+  ipc="/run/user/${uid}/monado_comp_ipc"
+  json="${PREFIX}/share/openxr/1/openxr_monado.json"
+  vr="${PREFIX}/lib/xrizer"
+  cat >"$ENV_D_FILE" <<EOF
+# vive-monado-steam-pop — written by install.sh (literal paths, no shell expand)
 PRESSURE_VESSEL_IMPORT_OPENXR_1_RUNTIMES=1
+PRESSURE_VESSEL_FILESYSTEMS_RW=${ipc}
 AMD_VULKAN_ICD=RADV
+RADV_PERFTEST=vr
+STEAMVR_LH_ENABLE=1
+XR_RUNTIME_JSON=${json}
+VR_OVERRIDE=${vr}
+VR_DISABLE_STEAMVR=1
 EOF
   chmod 644 "$ENV_D_FILE"
   vive_log "wrote ${ENV_D_FILE}"
@@ -222,7 +244,7 @@ chmod_scripts() {
   local s
   for s in install.sh kill-steamvr.sh launch-monado.sh launch-beat-saber.sh \
            launch-game.sh list-games.sh build.sh fallback-build.sh \
-           stop-monado.sh trim-prefix.sh; do
+           stop-monado.sh trim-prefix.sh vive-session.sh; do
     [[ -f "${SCRIPT_DIR}/${s}" ]] && chmod +x "${SCRIPT_DIR}/${s}"
   done
 }
@@ -269,12 +291,12 @@ main() {
   echo "Next:"
   echo "  1. Log out / reboot (udev + environment.d)."
   echo "  2. Confirm: echo \$XDG_SESSION_TYPE   →  x11"
-  echo "  3. ./launch-monado.sh"
-  echo "  4. Paste the launch options on each VR title (docs/steam-launch-options.md)"
-  echo "  5. ./launch-game.sh --list && ./launch-game.sh <appid|slug>"
-  echo "  6. ./stop-monado.sh          # after the session — do not leave the compositor idle"
+  echo "  3. Steam → Settings → Compatibility → Proton 9+ for all titles (once)."
+  echo "  4. Daily: click Vive  (or ./vive-session.sh) then click a game in Steam."
+  echo "     Do not open SteamVR. Do not open Envision."
+  echo "  5. After play: click Stop Vive  (or ./vive-session.sh --stop)"
   echo
-  echo "Rebuild later: ./build.sh     trim without rebuild: ./trim-prefix.sh"
+  echo "You do not paste per-game launch options if Steam was started from Vive."
 }
 
 main "$@"

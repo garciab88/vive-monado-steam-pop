@@ -53,4 +53,4 @@ fi
 
 vive_log "Monado compositor is the runtime. SteamVR compositor is not. Envision is not in this path."
 vive_log "Headset panels may stay a solid color until a client submits frames. That is success so far."
-vive_log "Then: ./launch-game.sh <appid|slug>   after the session: ./stop-monado.sh"
+vive_log "Then: ./vive-session.sh (or click a game if Steam is already this env). After play: ./vive-session.sh --stop"
