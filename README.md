@@ -1,5 +1,8 @@
 # vive-monado-steam-pop
 
+**AI-built.** Written by Grok (xAI). Not affiliated with Valve, HTC, or
+Freedesktop/Monado.
+
 Linux VR stack for **AMD + HTC Vive**: any Steam VR title renders on a Vive-family
 headset **without Valve's `vrcompositor`**.
 
@@ -140,5 +143,7 @@ old `WaitForPendingPresent` bug. Kill SteamVR and go through Monado.
 
 ## License
 
-MIT. No Valve proprietary binaries are shipped in this repository. SteamVR,
-if present on disk, is the copy Steam already installed.
+MIT. This repository is **AI-built** (Grok / xAI). No Valve proprietary
+binaries are shipped here. SteamVR, if present on disk, is the copy Steam
+already installed. Monado, xrizer, Steam, and the HTC Vive are their owners'
+trademarks; this is an independent launcher, not an official product.
