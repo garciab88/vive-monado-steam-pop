@@ -19,6 +19,17 @@ vive_source_env() {
   source "${REPO_ROOT}/vive.env"
 }
 
+# Leave two cores for the 3440×1440 desktop during compiles.
+vive_jobs() {
+  local n jobs
+  n="$(nproc 2>/dev/null || echo 2)"
+  jobs=$((n - 2))
+  if [[ "$jobs" -lt 1 ]]; then
+    jobs=1
+  fi
+  printf '%s' "$jobs"
+}
+
 vive_runtime_dir() {
   if [[ -n "${XDG_RUNTIME_DIR:-}" ]]; then
     printf '%s' "${XDG_RUNTIME_DIR}"

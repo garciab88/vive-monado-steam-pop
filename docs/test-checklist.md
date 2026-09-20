@@ -69,6 +69,7 @@ PRESSURE_VESSEL_IMPORT_OPENXR_1_RUNTIMES=1 PRESSURE_VESSEL_FILESYSTEMS_RW=$XDG_R
 - [ ] `pgrep -a monado-service` still running
 - [ ] If lenses went black while a desktop preview looked fine: SteamVR stole
       HDMI → `./kill-steamvr.sh`, relaunch Monado, relaunch the game
+- [ ] After the session: `./stop-monado.sh` — compositor must not sit idle
 
 ## Done
 

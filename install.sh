@@ -65,7 +65,6 @@ install_packages() {
     mesa-vulkan-drivers
     mesa-vulkan-drivers:i386
     libvulkan1
-    vulkan-tools
     libgl1-mesa-dri
     libopenxr-loader1
     libopenxr-dev
@@ -90,9 +89,6 @@ install_packages() {
     libeigen3-dev
     libbsd-dev
     libcjson-dev
-    libssl-dev
-    meson
-    gettext
     rustc
     cargo
     desktop-file-utils
@@ -103,8 +99,8 @@ install_packages() {
   as_root apt-get install -y --no-install-recommends "${pkgs[@]}" \
     || as_root apt-get install -y --no-install-recommends \
          git curl wget unzip ca-certificates build-essential cmake ninja-build \
-         pkg-config python3 mesa-vulkan-drivers libvulkan1 vulkan-tools \
-         libopenxr-loader1 libopenxr-dev desktop-file-utils meson \
+         pkg-config python3 mesa-vulkan-drivers libvulkan1 \
+         libopenxr-loader1 libopenxr-dev desktop-file-utils \
          libdrm-dev libvulkan-dev libx11-xcb-dev libxcb-randr0-dev \
          libusb-1.0-0-dev libhidapi-dev libeigen3-dev glslang-tools \
          libsystemd-dev rustc cargo || true
@@ -161,7 +157,7 @@ Name=Monado (Vive)
 Comment=Start Monado compositor for the HTC Vive — not SteamVR
 Exec=${SCRIPT_DIR}/launch-monado.sh
 Icon=applications-games
-Terminal=true
+Terminal=false
 Categories=Game;Utility;
 Keywords=VR;XR;Monado;Vive;OpenXR;
 StartupNotify=false
@@ -225,7 +221,8 @@ PY
 chmod_scripts() {
   local s
   for s in install.sh kill-steamvr.sh launch-monado.sh launch-beat-saber.sh \
-           launch-game.sh list-games.sh build.sh fallback-build.sh; do
+           launch-game.sh list-games.sh build.sh fallback-build.sh \
+           stop-monado.sh trim-prefix.sh; do
     [[ -f "${SCRIPT_DIR}/${s}" ]] && chmod +x "${SCRIPT_DIR}/${s}"
   done
 }
@@ -244,7 +241,8 @@ maybe_build() {
     return 0
   fi
   if [[ "$FORCE_REBUILD" -eq 0 && -x "${PREFIX}/bin/monado-service" ]]; then
-    vive_log "prefix already at ${PREFIX} — skip compile (./build.sh or $0 --rebuild to rebuild)"
+    vive_log "prefix already at ${PREFIX} — skip compile (./build.sh or $0 --rebuild)"
+    "${SCRIPT_DIR}/trim-prefix.sh" || true
     return 0
   fi
   vive_log "compiling Monado + xrizer into ${PREFIX} (several minutes)"
@@ -274,9 +272,9 @@ main() {
   echo "  3. ./launch-monado.sh"
   echo "  4. Paste the launch options on each VR title (docs/steam-launch-options.md)"
   echo "  5. ./launch-game.sh --list && ./launch-game.sh <appid|slug>"
+  echo "  6. ./stop-monado.sh          # after the session — do not leave the compositor idle"
   echo
-  echo "Rebuild later: ./build.sh"
-  echo "OpenComposite fallback: ./build.sh --opencomposite"
+  echo "Rebuild later: ./build.sh     trim without rebuild: ./trim-prefix.sh"
 }
 
 main "$@"

@@ -52,8 +52,8 @@ WaitForPendingPresent: failed to wait for present
 1. **Monado** — OpenXR runtime + compositor. Direct mode / DRM lease on the
    Vive HDMI output (`VK_EXT_acquire_xlib_display` on X11). Built into
    `~/.local/opt/vive-monado`.
-2. **build.sh** — compiles Monado + xrizer. `install.sh` runs it on first
-   setup. No Envision AppImage.
+2. **build.sh** — ultralight Monado + xrizer (Vive + steamvr_lh only,
+   stripped). `install.sh` runs it. No Envision.
 3. **xrizer** — OpenVR → OpenXR layer for Proton/Steam titles. OpenComposite
    only as fallback (`./build.sh --opencomposite`).
 4. **SteamVR** — installed for lighthouse calibration. Scripts kill
@@ -83,6 +83,7 @@ echo $XDG_SESSION_TYPE    # must be x11
 ./launch-game.sh --list          # installed Steam appids
 ./launch-game.sh --known         # catalog slugs
 ./launch-game.sh <appid|slug>
+./stop-monado.sh                 # after the session
 ```
 
 Paste this on **every** VR title — Steam → Properties → Launch Options.
@@ -99,10 +100,12 @@ Examples: `./launch-game.sh alyx` · `./launch-game.sh bonelab` · `./launch-gam
 | File | Role |
 |---|---|
 | `install.sh` | Idempotent Pop 24.04 deps, xr-hardware udev, `environment.d`, first compile |
-| `build.sh` | Standalone Monado + xrizer prefix (`~/.local/opt/vive-monado`) |
-| `vive.env` | RADV, lighthouse, compute compositor, pressure-vessel IPC |
+| `build.sh` | Ultralight Monado + xrizer (`~/.local/opt/vive-monado`) |
+| `trim-prefix.sh` | Strip + drop cargo junk without recompiling |
+| `vive.env` | RADV, lighthouse, scale 100%, no overlay/HUD/debug logs |
 | `kill-steamvr.sh` | Guard: kill Valve compositor processes |
-| `launch-monado.sh` | Source env, kill SteamVR, start `monado-service`, wait for IPC |
+| `launch-monado.sh` | Start `monado-service` only |
+| `stop-monado.sh` | Stop `monado-service` after the session |
 | `launch-game.sh` | `./launch-game.sh <appid\|slug>` — any Steam VR title (`--list`, `--known`) |
 | `list-games.sh` | Print installed Steam appid + name |
 | `lib/titles.tsv` | Slug catalog (alyx, bonelab, skyrim-vr, …) |

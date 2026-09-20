@@ -36,6 +36,7 @@ if [[ -z "$MONADO_BIN" ]]; then
 fi
 
 mkdir -p "${HOME}/.cache" "$(vive_runtime_dir)"
+: >"${HOME}/.cache/vive-monado-service.log"
 vive_log "starting ${MONADO_BIN}"
 nohup "$MONADO_BIN" >"${HOME}/.cache/vive-monado-service.log" 2>&1 &
 echo $! >"${HOME}/.cache/vive-monado-service.pid"
@@ -52,4 +53,4 @@ fi
 
 vive_log "Monado compositor is the runtime. SteamVR compositor is not. Envision is not in this path."
 vive_log "Headset panels may stay a solid color until a client submits frames. That is success so far."
-vive_log "Then: ./launch-game.sh --list && ./launch-game.sh <appid|slug>"
+vive_log "Then: ./launch-game.sh <appid|slug>   after the session: ./stop-monado.sh"
