@@ -50,7 +50,7 @@ Click **Start**, or run `./launch-monado.sh` from this repo.
 
 Monado has no dashboard. After Start, the Vive panels power on and may stay a
 **solid color**. That means the compositor holds the DRM lease and is waiting
-for a client. Launch Beat Saber.
+for a client. Launch any VR title (`./launch-game.sh <appid>`).
 
 If the **desktop preview** shows the game and the **lenses stay black**,
 SteamVR's `vrcompositor` stole HDMI. Run `./kill-steamvr.sh` immediately.

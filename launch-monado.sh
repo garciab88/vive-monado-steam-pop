@@ -80,4 +80,5 @@ if vive_steamvr_running; then
 fi
 
 vive_log "Monado compositor is the runtime. SteamVR compositor is not."
-vive_log "Headset panels may stay a solid color until a client (Beat Saber) submits frames. That is success so far."
+vive_log "Headset panels may stay a solid color until a client submits frames. That is success so far."
+vive_log "Then: ./launch-game.sh --list && ./launch-game.sh <appid>"

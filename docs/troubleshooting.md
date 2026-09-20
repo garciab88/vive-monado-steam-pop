@@ -82,12 +82,15 @@ Without this, `XRT_COMPOSITOR_COMPUTE=1` hitch-steps on RADV.
 
 ## Proton must be 9+
 
-Beat Saber is a Windows OpenVR title. Proton 9+ is what exposes OpenXR inside
-the container after xrizer satisfies the OpenVR check. Proton 8 and older will
-hunt for SteamVR and fail.
+Windows VR titles (Beat Saber included) are OpenVR or OpenXR inside Proton.
+Proton 9+ is what exposes OpenXR inside the container after xrizer satisfies
+the OpenVR check. Proton 8 and older will hunt for SteamVR and fail.
 
-Steam → Beat Saber → Properties → Compatibility → force Proton 9.0 / 10 /
-Experimental.
+Steam → the game → Properties → Compatibility → force Proton 9.0 / 10 /
+Experimental. Same rule on every Windows VR title.
+
+Native Linux OpenXR titles skip Proton; they still need the launch-options
+line so pressure-vessel imports Monado.
 
 ## Wrong Vulkan ICD
 
@@ -114,8 +117,8 @@ interfaces.
 
 ## xrizer vs OpenComposite
 
-Default is xrizer (Envision preference). If Beat Saber crashes on OpenVR init
-or controllers do not bind:
+Default is xrizer (Envision preference). If an OpenVR title crashes on OpenVR
+init or controllers do not bind:
 
 1. Envision → Preferences → General → OpenVR compatibility → OpenComposite.
 2. Or `./fallback-build.sh --opencomposite` and point

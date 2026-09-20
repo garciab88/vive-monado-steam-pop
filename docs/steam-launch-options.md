@@ -1,42 +1,35 @@
 # Steam launch options
 
-Proton **must be 9 or newer**. OpenVR titles talk to Monado through **xrizer**
-(OpenComposite only if xrizer cannot start the title).
+**Same line on every VR title.** Do not specialize it per game.
+
+Proton **must be 9 or newer** on Windows titles. OpenVR talks to Monado through
+**xrizer** (OpenComposite only if xrizer cannot start the title). Native Linux
+OpenXR titles still need the pressure-vessel tokens so the container can see
+Monado.
 
 Pressure-vessel (Steam Linux Runtime) does **not** import the host OpenXR
 runtime unless told to. It also cannot see Monado's compositor socket unless
 that path is bind-mounted read-write.
 
-## Beat Saber (appid 620980)
+## The line
 
-Steam → Beat Saber → Properties → Launch Options:
+Steam → the game → Properties → Launch Options:
 
 ```
 PRESSURE_VESSEL_IMPORT_OPENXR_1_RUNTIMES=1 PRESSURE_VESSEL_FILESYSTEMS_RW=$XDG_RUNTIME_DIR/monado_comp_ipc AMD_VULKAN_ICD=RADV RADV_PERFTEST=vr %command%
 ```
 
-Compatibility tab: force **Proton 9.0**, **Proton 10**, or **Proton Experimental**.
-Do not use Proton 8 or older.
+Compatibility tab (Windows): force **Proton 9.0**, **Proton 10**, or
+**Proton Experimental**. Do not use Proton 8 or older.
 
 Then:
 
 ```
-./launch-beat-saber.sh
+./launch-game.sh --list
+./launch-game.sh <appid>
 ```
 
-or:
-
-```
-./launch-game.sh 620980
-```
-
-## Any other Steam VR title
-
-Same line. Replace nothing except you launch with `./launch-game.sh <appid>`.
-
-```
-PRESSURE_VESSEL_IMPORT_OPENXR_1_RUNTIMES=1 PRESSURE_VESSEL_FILESYSTEMS_RW=$XDG_RUNTIME_DIR/monado_comp_ipc AMD_VULKAN_ICD=RADV RADV_PERFTEST=vr %command%
-```
+Smoke test (Beat Saber): `./launch-game.sh 620980`
 
 ## What each token does
 

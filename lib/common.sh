@@ -160,15 +160,87 @@ vive_steam_cmd() {
   return 1
 }
 
-vive_print_beat_saber_launch_options() {
-  cat <<'EOF'
-===== Beat Saber (appid 620980) Steam launch options — paste in Properties =====
-PRESSURE_VESSEL_IMPORT_OPENXR_1_RUNTIMES=1 PRESSURE_VESSEL_FILESYSTEMS_RW=$XDG_RUNTIME_DIR/monado_comp_ipc AMD_VULKAN_ICD=RADV RADV_PERFTEST=vr %command%
+vive_print_launch_options() {
+  local title="${1:-every Steam VR title}"
+  cat <<EOF
+===== ${title} — paste in Steam → Properties → Launch Options =====
+PRESSURE_VESSEL_IMPORT_OPENXR_1_RUNTIMES=1 PRESSURE_VESSEL_FILESYSTEMS_RW=\$XDG_RUNTIME_DIR/monado_comp_ipc AMD_VULKAN_ICD=RADV RADV_PERFTEST=vr %command%
 
-Compatibility: force Proton 9.0 or newer (Proton 9, 10, or Experimental).
+Windows OpenVR/OpenXR titles: force Proton 9.0 or newer.
+Native Linux OpenXR titles: same line still imports Monado into pressure-vessel.
 Do NOT launch SteamVR. Do NOT add -vrmode steamvr if it starts Valve's compositor.
 EOF
 }
+
+vive_print_beat_saber_launch_options() {
+  vive_print_launch_options "Beat Saber (appid 620980) — smoke-test title"
+}
+
+vive_steamapps_dirs() {
+  local d
+  for d in \
+    "${STEAM_ROOT_DEFAULT}/steamapps" \
+    "${HOME}/.steam/steam/steamapps" \
+    "${HOME}/.steam/root/steamapps" \
+    "${HOME}/.local/share/Steam/steamapps"
+  do
+    [[ -d "$d" ]] && printf '%s\n' "$d"
+  done | awk 'BEGIN{seen[""]=1} !seen[$0]++'
+}
+
+vive_resolve_appid() {
+  local raw="${1,,}"
+  raw="${raw// /-}"
+  case "$raw" in
+    beat-saber|beatsaber|bs) printf '620980' ;;
+    '' ) return 1 ;;
+    *[!0-9]*) return 1 ;;
+    *) printf '%s' "$raw" ;;
+  esac
+}
+
+vive_list_installed_games() {
+  python3 - <<'PY'
+import re, sys
+from pathlib import Path
+home = Path.home()
+dirs = [
+    home / ".steam/debian-installation/steamapps",
+    home / ".steam/steam/steamapps",
+    home / ".steam/root/steamapps",
+    home / ".local/share/Steam/steamapps",
+]
+seen = set()
+rows = []
+for d in dirs:
+    try:
+        d = d.resolve()
+    except Exception:
+        continue
+    if d in seen or not d.is_dir():
+        continue
+    seen.add(d)
+    for p in sorted(d.glob("appmanifest_*.acf")):
+        try:
+            text = p.read_text(errors="replace")
+        except OSError:
+            continue
+        appid = re.search(r'"appid"\s+"(\d+)"', text)
+        name = re.search(r'"name"\s+"([^"]+)"', text)
+        if appid and name:
+            rows.append((int(appid.group(1)), name.group(1)))
+uniq = {}
+for appid, name in rows:
+    uniq[appid] = name
+if not uniq:
+    sys.stderr.write("vive-monado: no Steam appmanifest_*.acf found\n")
+    sys.exit(1)
+width = max(len(str(i)) for i in uniq)
+for appid in sorted(uniq):
+    print(f"{str(appid).rjust(width)}  {uniq[appid]}")
+PY
+}
+
 
 vive_lighthouse_uuid_from_envision() {
   local envbin out

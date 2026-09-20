@@ -1,18 +1,16 @@
 # vive-monado-steam-pop
 
-Linux VR stack for **one** Pop!_OS box: Steam games render on an HTC Vive
-**without Valve's `vrcompositor`**.
+Linux VR stack for **one** Pop!_OS box: **any Steam VR title** renders on an
+HTC Vive **without Valve's `vrcompositor`**.
 
 This is **not SteamVR**. SteamVR may stay installed so lighthouse room-setup
 data exists. It must not run as the compositor. Success is **frames in both
 Vive lenses** while `pgrep vrcompositor` is empty.
 
 ```
-Beat Saber (Proton 9+)
-        │  OpenVR
-        ▼
-     xrizer          ← OpenComposite only as fallback
-        │  OpenXR
+Steam VR title (Proton 9+ OpenVR/OpenXR, or native Linux OpenXR)
+        │  OpenVR ──► xrizer (OpenComposite only as fallback)
+        │  OpenXR ──► (direct)
         ▼
      Monado          ← compositor + runtime, DRM-leases Vive HDMI
         │
@@ -21,6 +19,10 @@ Beat Saber (Proton 9+)
 
 Do not write a new Vulkan compositor. Do not debug SteamVR JSON. Do not enable
 SteamVR beta. Do not use ALVR or WiVRn. Extra hardware is not required.
+
+Beat Saber (`620980`) is the **smoke-test** title on this box, not a special
+path. Every other VR game uses the same compositor, the same env, and the
+same launch options.
 
 ## Hardware (this machine)
 
@@ -56,7 +58,7 @@ WaitForPendingPresent: failed to wait for present
 4. **SteamVR** — installed for lighthouse calibration. Scripts kill
    `vrcompositor` / `vrserver` / `vrmonitor` / `vrwebhelper` / `vrdashboard`
    if they wake.
-5. **Steam + Proton 9+** — Beat Saber (`appid 620980`) launches into Monado.
+5. **Steam + Proton 9+** — any VR appid launches into Monado.
 
 ## First run
 
@@ -79,16 +81,18 @@ room setup if chaperone is missing.
 
 ```bash
 ./launch-monado.sh
-./launch-beat-saber.sh
+./launch-game.sh --list          # installed Steam appids
+./launch-game.sh <appid>
 ```
 
-Paste this in Steam → Beat Saber → Properties → Launch Options (Proton 9+):
+Paste this on **every** VR title — Steam → Properties → Launch Options.
+Windows titles: Proton 9+. Native Linux OpenXR titles: same line.
 
 ```
 PRESSURE_VESSEL_IMPORT_OPENXR_1_RUNTIMES=1 PRESSURE_VESSEL_FILESYSTEMS_RW=$XDG_RUNTIME_DIR/monado_comp_ipc AMD_VULKAN_ICD=RADV RADV_PERFTEST=vr %command%
 ```
 
-Any other title: `./launch-game.sh <appid>`.
+Smoke test: `./launch-game.sh 620980` (Beat Saber) or `./launch-beat-saber.sh`.
 
 ## Scripts
 
@@ -99,19 +103,21 @@ Any other title: `./launch-game.sh <appid>`.
 | `vive.env` | RADV, lighthouse, compute compositor, pressure-vessel IPC |
 | `kill-steamvr.sh` | Guard: kill Valve compositor processes |
 | `launch-monado.sh` | Source env, kill SteamVR, start Envision profile or `monado-service`, wait for IPC |
-| `launch-beat-saber.sh` | Ensure Monado, print launch options, `steam://rungameid/620980` |
-| `launch-game.sh` | `./launch-game.sh <appid>` |
+| `launch-game.sh` | `./launch-game.sh <appid>` — any Steam VR title |
+| `list-games.sh` | Print installed Steam appid + name (`launch-game.sh --list`) |
+| `launch-beat-saber.sh` | Alias for `./launch-game.sh 620980` |
 
 ## Docs
 
+- [docs/games.md](docs/games.md) — any title, OpenVR vs OpenXR, finding appids
 - [docs/envision.md](docs/envision.md) — Lighthouse profile, first build, CLI
-- [docs/steam-launch-options.md](docs/steam-launch-options.md) — Proton 9+ line
+- [docs/steam-launch-options.md](docs/steam-launch-options.md) — the one line for every game
 - [docs/troubleshooting.md](docs/troubleshooting.md) — X11, HDMI, black lenses
 - [docs/test-checklist.md](docs/test-checklist.md) — 15-minute numbered pass
 
 ## Definition of done
 
-Beat Saber is visible in **both Vive lenses** and the SteamVR compositor is
+The VR title is visible in **both Vive lenses** and the SteamVR compositor is
 **not running**.
 
 ```bash

@@ -325,7 +325,7 @@ PY
 chmod_scripts() {
   local s
   for s in install.sh kill-steamvr.sh launch-monado.sh launch-beat-saber.sh \
-           launch-game.sh fallback-build.sh; do
+           launch-game.sh list-games.sh fallback-build.sh; do
     [[ -f "${SCRIPT_DIR}/${s}" ]] && chmod +x "${SCRIPT_DIR}/${s}"
   done
 }
@@ -364,8 +364,8 @@ main() {
   echo "     First build compiles Monado + xrizer. Do not start SteamVR from"
   echo "     Envision except one-time room setup if chaperone is missing."
   echo "  4. ./launch-monado.sh"
-  echo "  5. Paste Beat Saber launch options (see docs/steam-launch-options.md)"
-  echo "  6. ./launch-beat-saber.sh"
+  echo "  5. Paste the launch options on each VR title (docs/steam-launch-options.md)"
+  echo "  6. ./launch-game.sh --list && ./launch-game.sh <appid>"
   echo
   echo "If Envision is down: ./fallback-build.sh && ./launch-monado.sh"
 }

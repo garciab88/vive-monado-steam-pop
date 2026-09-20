@@ -2,9 +2,10 @@
 
 Hardware already on the desk: Vive HDMI + USB, 3440×1440 DP desktop, RX 6600
 RADV, Pop!_OS 24.04 GNOME Xorg. Steam at `~/.steam/debian-installation/`.
-Beat Saber (620980) installed.
 
-Target: both Vive lenses show Beat Saber, and `pgrep vrcompositor` is empty.
+Target: a VR title visible in both Vive lenses, and `pgrep vrcompositor` empty.
+Beat Saber (`620980`) is the default smoke test. Any other installed VR title
+is the same pass — swap the appid.
 
 ## 0:00 — session
 
@@ -43,10 +44,11 @@ Target: both Vive lenses show Beat Saber, and `pgrep vrcompositor` is empty.
 - [ ] `pgrep -a vrcompositor` is empty
 - [ ] Vive panels powered (solid color is OK — no dashboard)
 
-## 10:00 — Beat Saber properties
+## 10:00 — game properties (any VR title)
 
-- [ ] Compatibility: Proton 9.0 or newer
-- [ ] Launch options exactly:
+- [ ] `./launch-game.sh --list` — pick an appid (smoke test: `620980`)
+- [ ] Compatibility: Proton 9.0 or newer if the title is Windows
+- [ ] Launch options exactly (same on every title):
 
 ```
 PRESSURE_VESSEL_IMPORT_OPENXR_1_RUNTIMES=1 PRESSURE_VESSEL_FILESYSTEMS_RW=$XDG_RUNTIME_DIR/monado_comp_ipc AMD_VULKAN_ICD=RADV RADV_PERFTEST=vr %command%
@@ -54,9 +56,9 @@ PRESSURE_VESSEL_IMPORT_OPENXR_1_RUNTIMES=1 PRESSURE_VESSEL_FILESYSTEMS_RW=$XDG_R
 
 ## 12:00 — launch
 
-- [ ] `./launch-beat-saber.sh`
+- [ ] `./launch-game.sh <appid>`
 - [ ] Game window may appear on the desktop. That is **not** the pass condition.
-- [ ] Put the headset on. Both lenses show the Beat Saber sabers / menu.
+- [ ] Put the headset on. Both lenses show the game.
 - [ ] Look around: tracking tracks. Controllers present.
 
 ## 14:00 — prove SteamVR is not the compositor
@@ -70,7 +72,7 @@ PRESSURE_VESSEL_IMPORT_OPENXR_1_RUNTIMES=1 PRESSURE_VESSEL_FILESYSTEMS_RW=$XDG_R
 
 ## Done
 
-Beat Saber visible in both Vive lenses with SteamVR compositor not running.
+Chosen VR title visible in both Vive lenses with SteamVR compositor not running.
 
 If not done in 15 minutes, do not start editing SteamVR JSON. Follow
-`docs/troubleshooting.md` top to bottom.
+`docs/troubleshooting.md` top to bottom. Next title: skip to 10:00.
