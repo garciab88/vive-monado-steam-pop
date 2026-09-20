@@ -26,14 +26,13 @@ or a slug from `./launch-game.sh --known`.
 - [ ] Log out or reboot, come back on X11
 - [ ] Skip this block on later runs
 
-## 5:00 — Envision profile (first time only)
+## 5:00 — standalone compile (first time; install.sh already did this)
 
-- [ ] Open Envision AppImage (`~/.local/opt/envision/Envision-x86_64.AppImage`)
-- [ ] Profile = **Lighthouse** (Vive + base stations)
-- [ ] Development profile / first **Build** compiles Monado + xrizer
-- [ ] OpenVR compatibility = **xrizer**
-- [ ] Do **not** click Start SteamVR except one-time chaperone
-- [ ] If Envision cannot download: `./fallback-build.sh`
+- [ ] `~/.local/opt/vive-monado/bin/monado-service` exists
+- [ ] `~/.config/openxr/1/active_runtime.json` points at that prefix
+- [ ] `getcap ~/.local/opt/vive-monado/bin/monado-service` shows `cap_sys_nice`
+- [ ] If missing: `./build.sh`
+- [ ] No Envision. Do not start SteamVR except one-time chaperone if the vrchap is missing.
 
 ## 8:00 — compositor
 

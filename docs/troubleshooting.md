@@ -73,7 +73,7 @@ until it prints that IPC is up.
 ## CAP_SYS_NICE for AMD reprojection
 
 ```
-MONADO=$(find ~/.local/share/envision ~/.local/opt/vive-monado -name monado-service -type f 2>/dev/null | head -n1)
+MONADO=~/.local/opt/vive-monado/bin/monado-service
 getcap "$MONADO"
 sudo setcap CAP_SYS_NICE=eip "$MONADO"
 ```
@@ -117,13 +117,15 @@ interfaces.
 
 ## xrizer vs OpenComposite
 
-Default is xrizer (Envision preference). If an OpenVR title crashes on OpenVR
-init or controllers do not bind:
+Default is xrizer. If an OpenVR title crashes on OpenVR init or controllers
+do not bind:
 
-1. Envision → Preferences → General → OpenVR compatibility → OpenComposite.
-2. Or `./fallback-build.sh --opencomposite` and point
-   `~/.config/openvr/openvrpaths.vrpath` `runtime` at
-   `~/.local/opt/vive-monado/lib/opencomposite`.
+```
+./build.sh --opencomposite
+```
+
+Point `~/.config/openvr/openvrpaths.vrpath` `runtime` at
+`~/.local/opt/vive-monado/lib/opencomposite`.
 
 Keep SteamVR's runtime **out** of that file.
 
@@ -134,8 +136,8 @@ SteamVR stays installed so lighthouse calibration data exists:
 - `~/.steam/debian-installation/config/chaperone_info.vrchap`
 - `~/.steam/root/config/lighthouse/lighthousedb.json`
 
-If those are missing, run SteamVR **once** for room setup, or Envision Quick
-Calibration, then `./kill-steamvr.sh`.
+If those are missing, run SteamVR **once** for room setup, then
+`./kill-steamvr.sh`. Do not leave SteamVR running.
 
 ## Base stations
 

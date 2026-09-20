@@ -7,9 +7,7 @@ fi
 VIVE_MONADO_COMMON_LOADED=1
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ENVISION_DIR="${HOME}/.local/opt/envision"
-ENVISION_APPIMAGE="${ENVISION_DIR}/Envision-x86_64.AppImage"
-FALLBACK_PREFIX="${HOME}/.local/opt/vive-monado"
+PREFIX="${VIVE_MONADO_PREFIX:-${HOME}/.local/opt/vive-monado}"
 STEAM_ROOT_DEFAULT="${HOME}/.steam/debian-installation"
 
 vive_log() { printf 'vive-monado: %s\n' "$*"; }
@@ -71,51 +69,18 @@ vive_steamvr_running() {
     || pgrep -x vrmonitor >/dev/null 2>&1
 }
 
-vive_find_envision() {
-  local c
-  if [[ -x "${ENVISION_APPIMAGE}" ]]; then
-    printf '%s' "${ENVISION_APPIMAGE}"
-    return 0
-  fi
-  if [[ -x "${ENVISION_DIR}/envision" ]]; then
-    printf '%s' "${ENVISION_DIR}/envision"
-    return 0
-  fi
-  if [[ -x "${ENVISION_DIR}/squashfs-root/usr/bin/envision" ]]; then
-    printf '%s' "${ENVISION_DIR}/squashfs-root/usr/bin/envision"
-    return 0
-  fi
-  c="$(command -v envision 2>/dev/null || true)"
-  if [[ -n "$c" ]]; then
-    printf '%s' "$c"
-    return 0
-  fi
-  return 1
-}
-
 vive_find_monado_service() {
-  local c f
+  local c prefix
+  prefix="${VIVE_MONADO_PREFIX:-${PREFIX}}"
+  if [[ -x "${prefix}/bin/monado-service" ]]; then
+    printf '%s' "${prefix}/bin/monado-service"
+    return 0
+  fi
   c="$(command -v monado-service 2>/dev/null || true)"
   if [[ -n "$c" && -x "$c" ]]; then
     printf '%s' "$c"
     return 0
   fi
-  if [[ -x "${FALLBACK_PREFIX}/bin/monado-service" ]]; then
-    printf '%s' "${FALLBACK_PREFIX}/bin/monado-service"
-    return 0
-  fi
-  shopt -s nullglob
-  for f in \
-    "${HOME}"/.local/share/envision/prefixes/*/bin/monado-service \
-    "${HOME}"/.local/share/envision/*/bin/monado-service
-  do
-    if [[ -x "$f" ]]; then
-      printf '%s' "$f"
-      shopt -u nullglob
-      return 0
-    fi
-  done
-  shopt -u nullglob
   return 1
 }
 
@@ -274,27 +239,6 @@ for appid in sorted(uniq):
 PY
 }
 
-
-vive_lighthouse_uuid_from_envision() {
-  local envbin out
-  envbin="$(vive_find_envision)" || return 1
-  out="$("$envbin" --list-profiles 2>/dev/null || true)"
-  if [[ -z "$out" ]]; then
-    return 1
-  fi
-  printf '%s\n' "$out" >&2
-  # Prefer a line that mentions lighthouse / steamvr. UUID is 8-4-4-4-12 hex.
-  local line uuid
-  uuid="$(printf '%s\n' "$out" | grep -iE 'lighthouse|steamvr_lh|steamvr lh' | grep -oE '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}' | head -n1 || true)"
-  if [[ -z "$uuid" ]]; then
-    uuid="$(printf '%s\n' "$out" | grep -oE '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}' | head -n1 || true)"
-  fi
-  if [[ -n "$uuid" ]]; then
-    printf '%s' "$uuid"
-    return 0
-  fi
-  return 1
-}
 
 vive_check_cap_sys_nice() {
   local bin

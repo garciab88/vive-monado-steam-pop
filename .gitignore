@@ -5,7 +5,7 @@ Envision-*.zip
 envision-artifacts/
 .local-opt/
 
-# Build trees (fallback-build.sh, Envision prefixes copied here)
+# Build trees (build.sh prefix lives under ~/.local/opt, not here)
 build/
 build-*/
 prefix/

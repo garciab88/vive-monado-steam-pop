@@ -53,5 +53,5 @@ source of truth**. Log out after install anyway.
 - `VR_OVERRIDE` pointing at SteamVR's `vrclient.so`.
 - `XR_RUNTIME_JSON` pointing at SteamVR's `vrserver` manifest.
 
-Envision (or `fallback-build.sh`) owns `~/.config/openxr/1/active_runtime.json`
-and `~/.config/openvr/openvrpaths.vrpath` (xrizer).
+`build.sh` owns `~/.config/openxr/1/active_runtime.json` and
+`~/.config/openvr/openvrpaths.vrpath` (xrizer).

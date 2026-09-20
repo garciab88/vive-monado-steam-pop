@@ -3,9 +3,10 @@
 Linux VR stack for **one** Pop!_OS box: **any Steam VR title** renders on an
 HTC Vive **without Valve's `vrcompositor`**.
 
-This is **not SteamVR**. SteamVR may stay installed so lighthouse room-setup
-data exists. It must not run as the compositor. Success is **frames in both
-Vive lenses** while `pgrep vrcompositor` is empty.
+Standalone: **Monado + xrizer**, compiled locally. **No Envision.** SteamVR
+may stay installed so lighthouse room-setup data exists. It must not run as
+the compositor. Success is **frames in both Vive lenses** while
+`pgrep vrcompositor` is empty.
 
 ```
 Steam VR title (Proton 9+ OpenVR/OpenXR, or native Linux OpenXR)
@@ -49,11 +50,12 @@ WaitForPendingPresent: failed to wait for present
 ## Architecture
 
 1. **Monado** — OpenXR runtime + compositor. Direct mode / DRM lease on the
-   Vive HDMI output (`VK_EXT_acquire_xlib_display` on X11).
-2. **Envision** — preferred installer/orchestrator on Pop 24.04 (AppImage).
-   Fallback: `./fallback-build.sh` if GitLab artifacts are down.
+   Vive HDMI output (`VK_EXT_acquire_xlib_display` on X11). Built into
+   `~/.local/opt/vive-monado`.
+2. **build.sh** — compiles Monado + xrizer. `install.sh` runs it on first
+   setup. No Envision AppImage.
 3. **xrizer** — OpenVR → OpenXR layer for Proton/Steam titles. OpenComposite
-   only as fallback.
+   only as fallback (`./build.sh --opencomposite`).
 4. **SteamVR** — installed for lighthouse calibration. Scripts kill
    `vrcompositor` / `vrserver` / `vrmonitor` / `vrwebhelper` / `vrdashboard`
    if they wake.
@@ -68,15 +70,13 @@ chmod +x *.sh
 ./install.sh
 ```
 
-Then **log out or reboot** (udev + `environment.d`). Confirm X11:
+`install.sh` installs packages, udev rules, then **compiles Monado + xrizer**
+(several minutes). Then **log out or reboot** (udev + `environment.d`).
+Confirm X11:
 
 ```bash
 echo $XDG_SESSION_TYPE    # must be x11
 ```
-
-Open Envision. Profile = **Lighthouse** (Vive + base stations). First build
-compiles Monado + xrizer. Do not start SteamVR from Envision except one-time
-room setup if chaperone is missing.
 
 ```bash
 ./launch-monado.sh
@@ -98,19 +98,19 @@ Examples: `./launch-game.sh alyx` · `./launch-game.sh bonelab` · `./launch-gam
 
 | File | Role |
 |---|---|
-| `install.sh` | Idempotent Pop 24.04 deps, Envision AppImage, xr-hardware udev, `environment.d` |
-| `fallback-build.sh` | Manual Monado + xrizer prefix if Envision is down |
+| `install.sh` | Idempotent Pop 24.04 deps, xr-hardware udev, `environment.d`, first compile |
+| `build.sh` | Standalone Monado + xrizer prefix (`~/.local/opt/vive-monado`) |
 | `vive.env` | RADV, lighthouse, compute compositor, pressure-vessel IPC |
 | `kill-steamvr.sh` | Guard: kill Valve compositor processes |
-| `launch-monado.sh` | Source env, kill SteamVR, start Envision profile or `monado-service`, wait for IPC |
+| `launch-monado.sh` | Source env, kill SteamVR, start `monado-service`, wait for IPC |
 | `launch-game.sh` | `./launch-game.sh <appid\|slug>` — any Steam VR title (`--list`, `--known`) |
 | `list-games.sh` | Print installed Steam appid + name |
 | `lib/titles.tsv` | Slug catalog (alyx, bonelab, skyrim-vr, …) |
 
 ## Docs
 
+- [docs/build.md](docs/build.md) — standalone compile, cmake flags, prefix
 - [docs/games.md](docs/games.md) — any title, slugs, OpenVR vs OpenXR
-- [docs/envision.md](docs/envision.md) — Lighthouse profile, first build, CLI
 - [docs/steam-launch-options.md](docs/steam-launch-options.md) — the one line for every game
 - [docs/troubleshooting.md](docs/troubleshooting.md) — X11, HDMI, black lenses
 - [docs/test-checklist.md](docs/test-checklist.md) — 15-minute numbered pass

@@ -1,27 +1,35 @@
 #!/usr/bin/env bash
-# Idempotent Pop!_OS 24.04 setup for Monado + Envision + xrizer around SteamVR.
+# Idempotent Pop!_OS 24.04 setup: deps + standalone Monado + xrizer prefix.
+# Does not download or launch Envision.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/common.sh
 source "${SCRIPT_DIR}/lib/common.sh"
 
-ENVISION_DIR="${HOME}/.local/opt/envision"
-ENVISION_APPIMAGE="${ENVISION_DIR}/Envision-x86_64.AppImage"
+PREFIX="${VIVE_MONADO_PREFIX:-${HOME}/.local/opt/vive-monado}"
 ENV_D_DIR="${HOME}/.config/environment.d"
 ENV_D_FILE="${ENV_D_DIR}/99-vive-monado.conf"
 DESKTOP_DIR="${HOME}/.local/share/applications"
-DESKTOP_FILE="${DESKTOP_DIR}/org.gabmus.envision-vive-monado.desktop"
-
-# GitLab project gabmus/envision (id 46446166). Artifact job name is "appimage".
-# Verified 2026-09: https://gitlab.com/gabmus/envision/-/jobs/artifacts/main/download?job=appimage
-ENVISION_ARTIFACT_URLS=(
-  "https://gitlab.com/gabmus/envision/-/jobs/artifacts/main/download?job=appimage"
-  "https://gitlab.com/api/v4/projects/46446166/jobs/artifacts/main/download?job=appimage"
-)
+DESKTOP_FILE="${DESKTOP_DIR}/vive-monado-service.desktop"
 XR_HARDWARE_GIT="https://gitlab.freedesktop.org/monado/utilities/xr-hardware.git"
 
 need_reboot_note=0
+SKIP_BUILD=0
+FORCE_REBUILD=0
+
+for arg in "$@"; do
+  case "$arg" in
+    --skip-build) SKIP_BUILD=1 ;;
+    --rebuild) FORCE_REBUILD=1 ;;
+    -h|--help)
+      echo "Usage: $0 [--skip-build] [--rebuild]"
+      echo "Installs deps, xr-hardware udev, environment.d, then builds Monado + xrizer."
+      echo "No Envision. Rebuild later with ./build.sh or $0 --rebuild."
+      exit 0
+      ;;
+  esac
+done
 
 have() { command -v "$1" >/dev/null 2>&1; }
 
@@ -61,13 +69,9 @@ install_packages() {
     libgl1-mesa-dri
     libopenxr-loader1
     libopenxr-dev
-    libfuse2t64
-    desktop-file-utils
     libhidapi-hidraw0
     libusb-1.0-0
     udev
-  )
-  local extra=(
     glslang-tools
     libdrm-dev
     libgbm-dev
@@ -79,56 +83,42 @@ install_packages() {
     libx11-dev
     libxrandr-dev
     libxxf86vm-dev
-    libwayland-dev
-    wayland-protocols
     libusb-1.0-0-dev
     libhidapi-dev
     libudev-dev
+    libsystemd-dev
     libeigen3-dev
     libbsd-dev
     libcjson-dev
-    libgtk-4-dev
-    libadwaita-1-dev
     libssl-dev
-    libvte-2.91-gtk4-dev
     meson
     gettext
     rustc
     cargo
+    desktop-file-utils
   )
-  # i386 mesa is required for Proton; ignore if architecture not enabled.
   as_root dpkg --add-architecture i386 || true
   as_root apt-get update -y
 
-  local p install=()
-  for p in "${pkgs[@]}" "${extra[@]}"; do
-    install+=("$p")
-  done
-  # libfuse2 name flipped on noble; try both.
-  as_root apt-get install -y --no-install-recommends "${install[@]}" \
+  as_root apt-get install -y --no-install-recommends "${pkgs[@]}" \
     || as_root apt-get install -y --no-install-recommends \
          git curl wget unzip ca-certificates build-essential cmake ninja-build \
          pkg-config python3 mesa-vulkan-drivers libvulkan1 vulkan-tools \
          libopenxr-loader1 libopenxr-dev desktop-file-utils meson \
          libdrm-dev libvulkan-dev libx11-xcb-dev libxcb-randr0-dev \
          libusb-1.0-0-dev libhidapi-dev libeigen3-dev glslang-tools \
-         rustc cargo libfuse2 || true
+         libsystemd-dev rustc cargo || true
 
-  as_root apt-get install -y libfuse2t64 2>/dev/null || as_root apt-get install -y libfuse2 2>/dev/null || true
   as_root apt-get install -y xr-hardware 2>/dev/null || true
 }
 
 ensure_rust() {
   if have rustc && have cargo; then
-    local maj
-    maj="$(rustc --version 2>/dev/null | awk '{print $2}' | cut -d. -f1 || echo 0)"
-    if [[ "${maj:-0}" -ge 1 ]]; then
-      vive_log "rustc $(rustc --version | awk '{print $2}')"
-    fi
+    vive_log "rustc $(rustc --version | awk '{print $2}')"
   fi
   if ! have rustup; then
     if ! have rustc; then
-      vive_log "installing rustup (xrizer / Envision builds need a recent stable)"
+      vive_log "installing rustup (xrizer needs a recent stable)"
       curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
     fi
   fi
@@ -162,109 +152,19 @@ install_xr_hardware() {
   need_reboot_note=1
 }
 
-download_envision() {
-  mkdir -p "$ENVISION_DIR"
-  if [[ -x "$ENVISION_APPIMAGE" && -s "$ENVISION_APPIMAGE" ]]; then
-    vive_log "Envision AppImage already at ${ENVISION_APPIMAGE}"
-    return 0
-  fi
-
-  local tmp zip job_id
-  tmp="$(mktemp -d)"
-  zip="${tmp}/envision.zip"
-
-  local url ok=0
-  for url in "${ENVISION_ARTIFACT_URLS[@]}"; do
-    vive_log "downloading Envision artifacts: $url"
-    if curl -fL --retry 3 --retry-delay 2 -o "$zip" "$url"; then
-      ok=1
-      break
-    fi
-  done
-
-  if [[ "$ok" -ne 1 ]]; then
-    vive_warn "direct artifact URL failed; querying GitLab API for latest successful appimage job"
-    job_id="$(curl -fsSL "https://gitlab.com/api/v4/projects/46446166/jobs?per_page=40" \
-      | python3 -c '
-import json,sys
-jobs=json.load(sys.stdin)
-for j in jobs:
-    if j.get("name")=="appimage" and j.get("status")=="success":
-        print(j["id"]); break
-' || true)"
-    if [[ -n "${job_id:-}" ]]; then
-      vive_log "GitLab job ${job_id}"
-      if curl -fL --retry 2 -o "$zip" "https://gitlab.com/api/v4/projects/46446166/jobs/${job_id}/artifacts"; then
-        ok=1
-      else
-        curl -fL -o "${tmp}/Envision-x86_64.AppImage" \
-          "https://gitlab.com/gabmus/envision/-/jobs/${job_id}/artifacts/raw/Envision-x86_64.AppImage" \
-          && ok=2
-      fi
-    fi
-  fi
-
-  if [[ "$ok" -eq 0 ]]; then
-    rm -rf "$tmp"
-    vive_err "Envision AppImage download failed."
-    vive_err "Open https://gitlab.com/gabmus/envision/-/pipelines?ref=main&status=success"
-    vive_err "and save Envision-x86_64.AppImage to ${ENVISION_APPIMAGE}"
-    vive_err "or run ./fallback-build.sh for a manual Monado + xrizer prefix."
-    return 1
-  fi
-
-  if [[ "$ok" -eq 2 ]]; then
-    mv "${tmp}/Envision-x86_64.AppImage" "$ENVISION_APPIMAGE"
-  else
-    if unzip -t "$zip" >/dev/null 2>&1; then
-      unzip -o "$zip" -d "${tmp}/out"
-      local found
-      found="$(find "${tmp}/out" -type f -name 'Envision*.AppImage' | head -n1)"
-      if [[ -z "$found" ]]; then
-        vive_err "zip had no Envision*.AppImage"
-        rm -rf "$tmp"
-        return 1
-      fi
-      mv "$found" "$ENVISION_APPIMAGE"
-    else
-      # maybe it was the AppImage itself
-      mv "$zip" "$ENVISION_APPIMAGE"
-    fi
-  fi
-
-  chmod +x "$ENVISION_APPIMAGE"
-  ln -sfn "$ENVISION_APPIMAGE" "${ENVISION_DIR}/envision"
-  rm -rf "$tmp"
-  vive_log "installed ${ENVISION_APPIMAGE}"
-
-  # FUSE-less fallback extract for boxes without libfuse.
-  if ! "$ENVISION_APPIMAGE" --appimage-help >/dev/null 2>&1; then
-    vive_warn "AppImage may need FUSE; extracting squashfs"
-    (
-      cd "$ENVISION_DIR"
-      APPIMAGE_EXTRACT_AND_RUN=1 "$ENVISION_APPIMAGE" --appimage-extract >/dev/null 2>&1 || \
-        "$ENVISION_APPIMAGE" --appimage-extract >/dev/null 2>&1 || true
-    )
-  fi
-}
-
 write_desktop_entry() {
   mkdir -p "$DESKTOP_DIR"
-  local exec_line="$ENVISION_APPIMAGE"
-  if [[ -x "${ENVISION_DIR}/squashfs-root/usr/bin/envision" ]]; then
-    exec_line="${ENVISION_DIR}/squashfs-root/usr/bin/envision"
-  fi
   cat >"$DESKTOP_FILE" <<EOF
 [Desktop Entry]
 Type=Application
-Name=Envision (Vive / Monado)
-Comment=FOSS XR orchestrator — Monado compositor, not SteamVR
-Exec=${exec_line}
+Name=Monado (Vive)
+Comment=Start Monado compositor for the HTC Vive — not SteamVR
+Exec=${SCRIPT_DIR}/launch-monado.sh
 Icon=applications-games
-Terminal=false
+Terminal=true
 Categories=Game;Utility;
 Keywords=VR;XR;Monado;Vive;OpenXR;
-StartupNotify=true
+StartupNotify=false
 EOF
   if have update-desktop-database; then
     update-desktop-database "$DESKTOP_DIR" >/dev/null 2>&1 || true
@@ -288,7 +188,7 @@ EOF
 
 disable_steamvr_autolaunch() {
   python3 - <<'PY' || true
-import json, os
+import json
 from pathlib import Path
 home = Path.home()
 candidates = [
@@ -325,7 +225,7 @@ PY
 chmod_scripts() {
   local s
   for s in install.sh kill-steamvr.sh launch-monado.sh launch-beat-saber.sh \
-           launch-game.sh list-games.sh fallback-build.sh; do
+           launch-game.sh list-games.sh build.sh fallback-build.sh; do
     [[ -f "${SCRIPT_DIR}/${s}" ]] && chmod +x "${SCRIPT_DIR}/${s}"
   done
 }
@@ -338,20 +238,31 @@ print_session_hint() {
   fi
 }
 
+maybe_build() {
+  if [[ "$SKIP_BUILD" -eq 1 ]]; then
+    vive_log "skipping build (--skip-build). Later: ./build.sh"
+    return 0
+  fi
+  if [[ "$FORCE_REBUILD" -eq 0 && -x "${PREFIX}/bin/monado-service" ]]; then
+    vive_log "prefix already at ${PREFIX} — skip compile (./build.sh or $0 --rebuild to rebuild)"
+    return 0
+  fi
+  vive_log "compiling Monado + xrizer into ${PREFIX} (several minutes)"
+  "${SCRIPT_DIR}/build.sh"
+}
+
 main() {
   echo "=== vive-monado-steam-pop install (Pop!_OS 24.04 / X11 / RADV) ==="
-  echo "This is not SteamVR. Success = frames in the Vive lenses."
+  echo "Standalone Monado + xrizer. No Envision. Success = frames in the Vive lenses."
   echo
   install_packages
   ensure_rust
   install_xr_hardware
-  if ! download_envision; then
-    vive_warn "continuing without Envision AppImage — use ./fallback-build.sh"
-  fi
   write_desktop_entry
   write_environment_d
   disable_steamvr_autolaunch
   chmod_scripts
+  maybe_build
   print_session_hint
 
   echo
@@ -360,14 +271,12 @@ main() {
   echo "Next:"
   echo "  1. Log out / reboot (udev + environment.d)."
   echo "  2. Confirm: echo \$XDG_SESSION_TYPE   →  x11"
-  echo "  3. Open Envision → profile Lighthouse (Vive + base stations)."
-  echo "     First build compiles Monado + xrizer. Do not start SteamVR from"
-  echo "     Envision except one-time room setup if chaperone is missing."
-  echo "  4. ./launch-monado.sh"
-  echo "  5. Paste the launch options on each VR title (docs/steam-launch-options.md)"
-  echo "  6. ./launch-game.sh --list && ./launch-game.sh <appid>"
+  echo "  3. ./launch-monado.sh"
+  echo "  4. Paste the launch options on each VR title (docs/steam-launch-options.md)"
+  echo "  5. ./launch-game.sh --list && ./launch-game.sh <appid|slug>"
   echo
-  echo "If Envision is down: ./fallback-build.sh && ./launch-monado.sh"
+  echo "Rebuild later: ./build.sh"
+  echo "OpenComposite fallback: ./build.sh --opencomposite"
 }
 
 main "$@"

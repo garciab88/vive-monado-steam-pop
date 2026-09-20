@@ -44,9 +44,9 @@ Details: [steam-launch-options.md](steam-launch-options.md).
 Proton 8 and older hunt for SteamVR and fail. Force Proton 9.0 / 10 /
 Experimental on every Windows VR title.
 
-If xrizer cannot start a given OpenVR title, switch Envision → Preferences →
-General → OpenVR compatibility → **OpenComposite**, or
-`./fallback-build.sh --opencomposite`. Keep that as fallback, not default.
+If xrizer cannot start a given OpenVR title:
+`./build.sh --opencomposite` and point `openvrpaths.vrpath` at
+`~/.local/opt/vive-monado/lib/opencomposite`. Keep that as fallback, not default.
 
 ## Catalog slugs (`lib/titles.tsv`)
 
