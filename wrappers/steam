@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+# Drop-in Steam. If the Vive is plugged in, Monado holds the headset and
+# vrcompositor is kept dead. Steam library, Home, overlay, and games work.
+# AI-built. MIT. Free.
+set -euo pipefail
+
+ROOT=""
+if [[ -f "${HOME}/.config/vive-monado/root" ]]; then
+  ROOT="$(tr -d '\n' <"${HOME}/.config/vive-monado/root")"
+fi
+if [[ -z "$ROOT" || ! -d "$ROOT/lib" ]]; then
+  ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+fi
+
+# shellcheck source=../lib/common.sh
+source "${ROOT}/lib/common.sh"
+vive_source_env
+vive_apply_profile
+
+vive_real_steam() {
+  local self p
+  self="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || true)"
+  for p in /usr/games/steam /usr/bin/steam /usr/local/bin/steam; do
+    if [[ -x "$p" ]] && [[ "$(readlink -f "$p" 2>/dev/null || true)" != "$self" ]]; then
+      printf '%s' "$p"
+      return 0
+    fi
+  done
+  local c
+  c="$(vive_steam_cmd || true)"
+  if [[ -n "$c" && "$(readlink -f "$c" 2>/dev/null || true)" != "$self" ]]; then
+    printf '%s' "$c"
+    return 0
+  fi
+  return 1
+}
+
+guard_vrcompositor() {
+  (
+    while pgrep -x steam >/dev/null 2>&1 || pgrep -x steam-runtime-steam >/dev/null 2>&1; do
+      if pgrep -x vrcompositor >/dev/null 2>&1 || pgrep -x vrserver >/dev/null 2>&1; then
+        "${ROOT}/kill-steamvr.sh" >/dev/null 2>&1 || true
+      fi
+      sleep 2
+    done
+  ) &
+  disown || true
+}
+
+STEAM="$(vive_real_steam || true)"
+if [[ -z "$STEAM" ]]; then
+  vive_err "Steam is not installed."
+  exit 1
+fi
+
+if [[ "${1:-}" == "--stop-vr" ]]; then
+  exec "${ROOT}/stop-monado.sh"
+fi
+
+if vive_hmd_connected; then
+  vive_require_x11 || true
+  "${ROOT}/launch-monado.sh"
+  vive_kill_steamvr || true
+  guard_vrcompositor
+  vive_log "headset up (profile ${VIVE_PROFILE}). Steam Home / library / overlay are yours. Click a game."
+else
+  vive_log "no HMD seen — starting Steam only (plug the Vive in to enable VR)"
+fi
+
+if pgrep -x steam >/dev/null 2>&1 || pgrep -x steam-runtime-steam >/dev/null 2>&1; then
+  # Already running from a previous dock click without this wrapper — restart so env sticks.
+  "$STEAM" -shutdown >/dev/null 2>&1 || true
+  for _ in $(seq 1 30); do
+    pgrep -x steam >/dev/null 2>&1 || break
+    sleep 0.4
+  done
+fi
+
+exec "$STEAM" "$@"

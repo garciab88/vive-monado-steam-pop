@@ -152,6 +152,42 @@ vive_amd_ok() {
   return 0
 }
 
+# HDMI Vive, or two+ connected displays (Pro on DP + desktop on DP).
+vive_hmd_connected() {
+  local f n=0
+  shopt -s nullglob
+  for f in /sys/class/drm/card*-HDMI-A-*/status; do
+    if [[ "$(cat "$f" 2>/dev/null || true)" == "connected" ]]; then
+      shopt -u nullglob
+      return 0
+    fi
+  done
+  for f in /sys/class/drm/card*-HDMI-A-*/status \
+           /sys/class/drm/card*-DP-*/status \
+           /sys/class/drm/card*-DisplayPort-*/status; do
+    if [[ "$(cat "$f" 2>/dev/null || true)" == "connected" ]]; then
+      n=$((n + 1))
+    fi
+  done
+  shopt -u nullglob
+  [[ "$n" -ge 2 ]]
+}
+
+# Reference box = RDNA2 Navi 23 (RX 6600 / 6600 XT). Same flags are correct on
+# other AMD RADV GPUs; we only special-case known PCI IDs for logging.
+vive_apply_profile() {
+  local pci
+  pci="$(lspci -n 2>/dev/null | grep -Ei '1002:' || true)"
+  export VIVE_PROFILE="${VIVE_PROFILE:-amd}"
+  if printf '%s' "$pci" | grep -qiE '1002:73ff|1002:73e3|1002:73ef'; then
+    export VIVE_PROFILE="rx6600"
+  elif printf '%s' "$pci" | grep -qi '1002:'; then
+    export VIVE_PROFILE="amd"
+  fi
+  export RADV_PERFTEST="${RADV_PERFTEST:-vr}"
+  export XRT_COMPOSITOR_COMPUTE="${XRT_COMPOSITOR_COMPUTE:-1}"
+}
+
 vive_drm_status() {
   local f status
   shopt -s nullglob

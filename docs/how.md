@@ -31,14 +31,12 @@ Nothing else is in the path. No Envision. No ALVR. No new Vulkan compositor.
 
 ## What you open (daily)
 
-**One thing:** `./vive-session.sh` or the **Vive** app in the menu.
+**Steam.** The install replaces your user Steam menu entry with a wrapper.
+If the Vive is plugged in, Monado starts and Valve's compositor is kept dead.
+Library, Home, overlay, friends — normal Steam. Click a game.
 
-That starts `monado-service` and Steam **with the Monado environment**. Then
-click any VR title in the Steam library. Put the headset on.
-
-You do **not** open SteamVR, Envision, or a second compositor.
-
-When you are done: **Stop Vive**, or `./vive-session.sh --stop`.
+Do not click **Play SteamVR**. That button is `vrcompositor` (black lenses).
+Valve's 3D SteamVR apartment is that compositor. Steam's own Home tab is not.
 
 ## One-time (not daily)
 

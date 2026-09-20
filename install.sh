@@ -12,8 +12,10 @@ PREFIX="${VIVE_MONADO_PREFIX:-${HOME}/.local/opt/vive-monado}"
 ENV_D_DIR="${HOME}/.config/environment.d"
 ENV_D_FILE="${ENV_D_DIR}/99-vive-monado.conf"
 DESKTOP_DIR="${HOME}/.local/share/applications"
-DESKTOP_FILE="${DESKTOP_DIR}/vive-monado.desktop"
+DESKTOP_FILE="${DESKTOP_DIR}/steam.desktop"
 STOP_DESKTOP_FILE="${DESKTOP_DIR}/vive-monado-stop.desktop"
+WRAPPER_DST="${HOME}/.local/bin/steam"
+CONFIG_DIR="${HOME}/.config/vive-monado"
 XR_HARDWARE_GIT="https://gitlab.freedesktop.org/monado/utilities/xr-hardware.git"
 
 need_reboot_note=0
@@ -166,29 +168,34 @@ install_xr_hardware() {
 }
 
 write_desktop_entry() {
-  mkdir -p "$DESKTOP_DIR"
+  mkdir -p "$DESKTOP_DIR" "$(dirname "$WRAPPER_DST")" "$CONFIG_DIR"
+  printf '%s\n' "$SCRIPT_DIR" >"${CONFIG_DIR}/root"
+  chmod 755 "${SCRIPT_DIR}/wrappers/steam"
+  ln -sfn "${SCRIPT_DIR}/wrappers/steam" "$WRAPPER_DST"
+  vive_log "Steam wrapper → ${WRAPPER_DST}"
+
   cat >"$DESKTOP_FILE" <<EOF
 [Desktop Entry]
 Type=Application
-Name=Vive
-Comment=HTC Vive via Monado — starts compositor + Steam. Not SteamVR.
-Exec=${SCRIPT_DIR}/vive-session.sh
-Icon=applications-games
+Name=Steam
+Comment=Steam with Vive via Monado — library, Home, overlay, games
+Exec=${SCRIPT_DIR}/wrappers/steam %U
+Icon=steam
 Terminal=false
 Categories=Game;
-Keywords=VR;XR;Monado;Vive;OpenXR;Steam;
-StartupNotify=false
+MimeType=x-scheme-handler/steam;x-scheme-handler/steamlink;
+Keywords=steam;vive;vr;monado;
+StartupNotify=true
 EOF
   cat >"$STOP_DESKTOP_FILE" <<EOF
 [Desktop Entry]
 Type=Application
 Name=Stop Vive
-Comment=Stop Monado compositor after a VR session
+Comment=Stop Monado after a VR session
 Exec=${SCRIPT_DIR}/stop-monado.sh
 Icon=application-exit
 Terminal=false
 Categories=Game;
-Keywords=VR;Monado;Vive;
 StartupNotify=false
 EOF
   if have update-desktop-database; then
@@ -249,8 +256,6 @@ for p in candidates:
         print(f"vive-monado: steamvr autolaunch already off ({p})")
         continue
     power["autoLaunchSteamVROnButtonPress"] = False
-    steamvr = data.setdefault("steamvr", {})
-    steamvr.setdefault("enableHomeApp", False)
     p.write_text(json.dumps(data, indent=2) + "\n")
     print(f"vive-monado: disabled autoLaunchSteamVROnButtonPress in {p}")
 PY
@@ -263,6 +268,7 @@ chmod_scripts() {
            stop-monado.sh trim-prefix.sh vive-session.sh vive-doctor.sh; do
     [[ -f "${SCRIPT_DIR}/${s}" ]] && chmod +x "${SCRIPT_DIR}/${s}"
   done
+  chmod +x "${SCRIPT_DIR}/wrappers/steam" 2>/dev/null || true
 }
 
 print_session_hint() {
@@ -306,17 +312,11 @@ main() {
   "${SCRIPT_DIR}/vive-doctor.sh" || true
 
   echo
-  echo "log out or reboot after udev/environment.d"
+  echo "Done. Log out once (udev), then:"
+  echo "  open Steam  →  click a game  →  put the headset on"
   echo
-  echo "Next:"
-  echo "  1. Log out / reboot (udev + environment.d)."
-  echo "  2. Confirm: echo \$XDG_SESSION_TYPE   →  x11"
-  echo "  3. Steam → Settings → Compatibility → Proton 9+ for all titles (once)."
-  echo "  4. Daily: click Vive  (or ./vive-session.sh) then click a game in Steam."
-  echo "     Do not open SteamVR. Do not open Envision."
-  echo "  5. After play: click Stop Vive  (or ./vive-session.sh --stop)"
-  echo
-  echo "You do not paste per-game launch options if Steam was started from Vive."
+  echo "MIT, free, AI-built. No Envision. Do not click Play SteamVR."
+  echo "That button is Valve's compositor (black lenses). Games go through Monado."
 }
 
 main "$@"
