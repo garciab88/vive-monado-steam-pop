@@ -286,7 +286,9 @@ maybe_build() {
     vive_log "skipping build (--skip-build). Later: ./build.sh"
     return 0
   fi
-  if [[ "$FORCE_REBUILD" -eq 0 && -x "${PREFIX}/bin/monado-service" ]]; then
+  if [[ "$FORCE_REBUILD" -eq 0 && -x "${PREFIX}/bin/monado-service" ]] \
+    && { [[ -e "${PREFIX}/lib/xrizer/bin/linux64/vrclient.so" ]] \
+      || [[ -e "${PREFIX}/lib/xrizer/libxrizer.so" ]]; }; then
     vive_log "prefix already at ${PREFIX} — skip compile (./build.sh or $0 --rebuild)"
     "${SCRIPT_DIR}/trim-prefix.sh" || true
     return 0
