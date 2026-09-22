@@ -130,15 +130,14 @@ install_packages() {
 ensure_rust() {
   if have rustc && have cargo; then
     vive_log "rustc $(rustc --version | awk '{print $2}')"
+  elif ! have rustup; then
+    vive_log "installing rustup (xrizer needs a recent stable)"
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
   fi
-  if ! have rustup; then
-    if ! have rustc; then
-      vive_log "installing rustup (xrizer needs a recent stable)"
-      curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
-    fi
+  if [[ -f "${HOME}/.cargo/env" ]]; then
+    # shellcheck disable=SC1091
+    source "${HOME}/.cargo/env"
   fi
-  # shellcheck disable=SC1091
-  [[ -f "${HOME}/.cargo/env" ]] && source "${HOME}/.cargo/env"
 }
 
 install_xr_hardware() {

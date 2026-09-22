@@ -29,7 +29,9 @@ for arg in "$@"; do
 done
 
 # shellcheck disable=SC1091
-[[ -f "${HOME}/.cargo/env" ]] && source "${HOME}/.cargo/env"
+if [[ -f "${HOME}/.cargo/env" ]]; then
+  source "${HOME}/.cargo/env"
+fi
 
 have() { command -v "$1" >/dev/null 2>&1; }
 as_root() {
