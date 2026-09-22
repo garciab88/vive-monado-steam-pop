@@ -141,6 +141,21 @@ ensure_rust() {
   fi
 }
 
+check_compile_deps() {
+  local miss=()
+  have cmake || miss+=(cmake)
+  have ninja || miss+=(ninja)
+  have cargo || miss+=(cargo)
+  have rustc || miss+=(rustc)
+  have glslc || miss+=(glslc)
+  have g++ || miss+=(g++)
+  if ((${#miss[@]})); then
+    vive_err "after apt/dnf, still missing: ${miss[*]}"
+    vive_err "needed for xrizer: glslc (shaderc), clang/libclang-dev, g++"
+    exit 1
+  fi
+}
+
 install_xr_hardware() {
   if [[ -f /usr/lib/udev/rules.d/70-xrhardware.rules ]] \
     || [[ -f /etc/udev/rules.d/70-xrhardware.rules ]] \
@@ -295,7 +310,17 @@ maybe_build() {
     return 0
   fi
   vive_log "compiling Monado + xrizer into ${PREFIX} (several minutes)"
-  "${SCRIPT_DIR}/build.sh"
+  if [[ "$FORCE_REBUILD" -eq 1 ]]; then
+    "${SCRIPT_DIR}/build.sh" --force-monado
+  else
+    "${SCRIPT_DIR}/build.sh"
+  fi
+}
+
+prefix_complete() {
+  [[ -x "${PREFIX}/bin/monado-service" ]] \
+    && { [[ -e "${PREFIX}/lib/xrizer/bin/linux64/vrclient.so" ]] \
+      || [[ -e "${PREFIX}/lib/xrizer/libxrizer.so" ]]; }
 }
 
 main() {
@@ -304,6 +329,7 @@ main() {
   echo
   install_packages
   ensure_rust
+  check_compile_deps
   install_xr_hardware
   write_desktop_entry
   write_environment_d
@@ -312,6 +338,13 @@ main() {
   maybe_build
   print_session_hint
   "${SCRIPT_DIR}/vive-doctor.sh" || true
+
+  if ! prefix_complete; then
+    echo
+    vive_err "install incomplete (monado or xrizer missing). Do not log out."
+    vive_err "paste the last 30 lines if it failed. Do not click Play SteamVR."
+    exit 1
+  fi
 
   echo
   echo "Done. Log out once (udev), then:"

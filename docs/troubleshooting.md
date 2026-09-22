@@ -13,6 +13,25 @@ panels. Stop routing through Valve's compositor. This stack is Monado.
 
 Run `./vive-doctor.sh` first.
 
+## Install never said Done / xrizer missing
+
+Current git already includes the first-run fixes from Pop!_OS 24.04:
+
+- `glslc` + `clang` + `libclang-dev` (xrizer shaders + bindgen)
+- GCC C++ multiarch path for `#include <string>` / `bits/c++config.h`
+- Monado `DRIVER_SIMULATED=ON` (link needs `simulated_hmd_create`)
+- Do not skip compile if xrizer is missing
+- Do not print **Done** on a partial prefix
+
+```
+cd ~/vive-monado-steam-pop
+git pull
+./install.sh --rebuild
+./vive-doctor.sh
+```
+
+Doctor must show `xrizer present` and `monado-service` under `~/.local/opt/vive-monado`.
+
 ## Session
 
 ```

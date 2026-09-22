@@ -3,7 +3,8 @@
 **AI-built. MIT. Free.** Written by Grok (xAI). Not affiliated with Valve, HTC,
 or Freedesktop.
 
-Download it. Install once. Open Steam. Click a game. Headset on.
+Download it. `./install.sh` once. Wait until it says **Done** and doctor
+shows **xrizer present**. Log out. Open Steam. Click a game. Headset on.
 
 This is a magic-bullet stack for **AMD + HTC Vive on Linux**. Valve's
 `vrcompositor` blacks the Vive on this hardware (even native OpenXR titles).
@@ -22,20 +23,29 @@ chmod +x *.sh wrappers/steam
 ./install.sh
 ```
 
-Log out once (udev). Then:
+First compile is several minutes (sudo for packages + setcap). Leave it until:
+
+```
+Done. Log out once (udev), then:
+  open Steam  →  click a game  →  put the headset on
+```
+
+If it exits without **Done**, it failed — do not log out, do not click
+Play SteamVR. `./vive-doctor.sh` must show `xrizer present`.
+
+Then log out once (udev). Stay on **GNOME on Xorg**. Then:
 
 1. Plug in the Vive (HDMI/DP + USB), power the lighthouses.
 2. Open **Steam** (the menu entry this install owns).
-3. Click any VR game. Put the headset on.
+3. Settings → Compatibility → Proton 9+ for all titles *(once)*.
+4. Click any VR game. Put the headset on.
 
-That is the whole daily path. No launch options to paste. No Envision.
-
-First time only, in Steam: Settings → Compatibility → Proton 9+ for all titles.
+No launch options to paste. No Envision.
 
 Do **not** click Play SteamVR. That is the compositor that blacks the lenses.
 
-When you are done: **Stop Vive**, or leave it — the compositor is cheap at idle
-compared to SteamVR.
+When you are done: **Stop Vive**, or leave it — idle Monado is cheap compared
+to SteamVR.
 
 ## What you get
 
