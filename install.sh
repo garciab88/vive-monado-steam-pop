@@ -70,7 +70,7 @@ install_packages_debian() {
     libvulkan-dev libx11-xcb-dev libxcb-randr0-dev libx11-dev libxrandr-dev
     libxxf86vm-dev libusb-1.0-0-dev libhidapi-dev libudev-dev libsystemd-dev
     libeigen3-dev libbsd-dev libcjson-dev rustc cargo desktop-file-utils
-    glslc clang libclang-dev g++
+    glslc clang libclang-dev g++ libstdc++-dev
   )
   as_root apt-get install -y --no-install-recommends "${pkgs[@]}" \
     || as_root apt-get install -y --no-install-recommends \

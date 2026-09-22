@@ -38,6 +38,20 @@ as_root() {
   if [[ "$(id -u)" -eq 0 ]]; then "$@"; else sudo "$@"; fi
 }
 
+# libclang (bindgen) does not get GCC's C++ search path. xrizer's
+# OpenVR headers #include <string> and fail without this.
+setup_bindgen_cxx() {
+  local inc multi
+  inc="$(ls -d /usr/include/c++/[0-9]* 2>/dev/null | sort -V | tail -n1 || true)"
+  if [[ -z "$inc" ]]; then
+    vive_warn "no /usr/include/c++ — install g++ / libstdc++-dev"
+    return 0
+  fi
+  multi="$(ls -d "${inc}"/*-linux-gnu 2>/dev/null | head -n1 || true)"
+  export BINDGEN_EXTRA_CLANG_ARGS="-isystem ${inc}${multi:+ -isystem ${multi}}"
+  vive_log "bindgen C++: ${BINDGEN_EXTRA_CLANG_ARGS}"
+}
+
 clone_or_update() {
   local url="$1" dir="$2"
   if [[ -d "${dir}/.git" ]]; then
@@ -117,6 +131,7 @@ build_xrizer() {
       vive_err "glslc not found. ./install.sh (package: glslc / shaderc)"
       exit 1
     fi
+    setup_bindgen_cxx
     cargo build --release -j "$jobs"
   )
   install_xrizer_runtime
