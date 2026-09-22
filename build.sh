@@ -112,12 +112,12 @@ build_xrizer() {
     cd "${SRC}/xrizer"
     export CARGO_PROFILE_RELEASE_LTO="${CARGO_PROFILE_RELEASE_LTO:-thin}"
     export CARGO_PROFILE_RELEASE_STRIP="${CARGO_PROFILE_RELEASE_STRIP:-symbols}"
-    export CARGO_TERM_QUIET=1
-    if cargo xbuild --release -j "$jobs"; then
+    unset CARGO_TERM_QUIET 2>/dev/null || true
+    if cargo build --release -j "$jobs"; then
       :
     else
-      vive_warn "cargo xbuild failed; trying cargo build --release"
-      cargo build --release -j "$jobs"
+      vive_warn "cargo build --release failed; trying cargo xbuild --release"
+      cargo xbuild --release -j "$jobs"
     fi
   )
   install_xrizer_runtime
