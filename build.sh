@@ -38,16 +38,17 @@ as_root() {
   if [[ "$(id -u)" -eq 0 ]]; then "$@"; else sudo "$@"; fi
 }
 
-# libclang (bindgen) does not get GCC's C++ search path. xrizer's
-# OpenVR headers #include <string> and fail without this.
+# libclang (bindgen) does not get GCC's C++ search path. Debian puts
+# bits/c++config.h in /usr/include/<triplet>/c++/<ver>, not under c++/<ver>.
 setup_bindgen_cxx() {
-  local inc multi
+  local inc ver multi
   inc="$(ls -d /usr/include/c++/[0-9]* 2>/dev/null | sort -V | tail -n1 || true)"
   if [[ -z "$inc" ]]; then
     vive_warn "no /usr/include/c++ — install g++ / libstdc++-dev"
     return 0
   fi
-  multi="$(ls -d "${inc}"/*-linux-gnu 2>/dev/null | head -n1 || true)"
+  ver="$(basename "$inc")"
+  multi="$(ls -d /usr/include/*-linux-gnu/c++/"${ver}" 2>/dev/null | head -n1 || true)"
   export BINDGEN_EXTRA_CLANG_ARGS="-isystem ${inc}${multi:+ -isystem ${multi}}"
   vive_log "bindgen C++: ${BINDGEN_EXTRA_CLANG_ARGS}"
 }
@@ -63,6 +64,10 @@ clone_or_update() {
 }
 
 build_monado() {
+  if [[ -x "${PREFIX}/bin/monado-service" ]]; then
+    vive_log "monado already at ${PREFIX} — skip cmake"
+    return 0
+  fi
   vive_log "building Monado → ${PREFIX} (ultralight: Vive + steamvr_lh only)"
   mkdir -p "$SRC" "$PREFIX"
   clone_or_update "$MONADO_GIT" "${SRC}/monado"
