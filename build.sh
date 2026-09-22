@@ -113,12 +113,11 @@ build_xrizer() {
     export CARGO_PROFILE_RELEASE_LTO="${CARGO_PROFILE_RELEASE_LTO:-thin}"
     export CARGO_PROFILE_RELEASE_STRIP="${CARGO_PROFILE_RELEASE_STRIP:-symbols}"
     unset CARGO_TERM_QUIET 2>/dev/null || true
-    if cargo build --release -j "$jobs"; then
-      :
-    else
-      vive_warn "cargo build --release failed; trying cargo xbuild --release"
-      cargo xbuild --release -j "$jobs"
+    if ! command -v glslc >/dev/null 2>&1; then
+      vive_err "glslc not found. ./install.sh (package: glslc / shaderc)"
+      exit 1
     fi
+    cargo build --release -j "$jobs"
   )
   install_xrizer_runtime
 }

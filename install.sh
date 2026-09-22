@@ -70,6 +70,7 @@ install_packages_debian() {
     libvulkan-dev libx11-xcb-dev libxcb-randr0-dev libx11-dev libxrandr-dev
     libxxf86vm-dev libusb-1.0-0-dev libhidapi-dev libudev-dev libsystemd-dev
     libeigen3-dev libbsd-dev libcjson-dev rustc cargo desktop-file-utils
+    glslc clang libclang-dev g++
   )
   as_root apt-get install -y --no-install-recommends "${pkgs[@]}" \
     || as_root apt-get install -y --no-install-recommends \
@@ -77,7 +78,7 @@ install_packages_debian() {
          mesa-vulkan-drivers libvulkan1 libopenxr-loader1 libopenxr-dev \
          libdrm-dev libvulkan-dev libx11-xcb-dev libxcb-randr0-dev \
          libusb-1.0-0-dev libhidapi-dev libeigen3-dev glslang-tools \
-         libsystemd-dev rustc cargo desktop-file-utils || true
+         libsystemd-dev rustc cargo desktop-file-utils glslc clang libclang-dev || true
   as_root apt-get install -y mesa-vulkan-drivers:i386 2>/dev/null || \
     vive_warn "32-bit mesa not installed — Proton VR titles need it"
   as_root apt-get install -y xr-hardware 2>/dev/null || true
@@ -91,12 +92,12 @@ install_packages_fedora() {
     libdrm-devel mesa-libEGL-devel mesa-libGL-devel \
     libX11-devel libXrandr-devel libXxf86vm-devel libxcb-devel \
     systemd-devel eigen3-devel hidapi-devel libusbx-devel \
-    glslang rust cargo desktop-file-utils \
+    glslang rust cargo desktop-file-utils shaderc clang clang-devel \
     openxr-devel 2>/dev/null \
     || as_root dnf install -y git cmake ninja-build gcc-c++ python3 \
          mesa-vulkan-drivers vulkan-loader-devel libdrm-devel \
          libX11-devel systemd-devel eigen3-devel hidapi-devel \
-         libusbx-devel glslang rust cargo || true
+         libusbx-devel glslang rust cargo shaderc clang clang-devel || true
   as_root dnf install -y mesa-vulkan-drivers.i686 vulkan-loader.i686 2>/dev/null || \
     vive_warn "32-bit mesa not installed — Proton VR titles need it"
 }
@@ -106,7 +107,7 @@ install_packages_arch() {
   as_root pacman -Sy --needed --noconfirm \
     git curl cmake ninja base-devel python mesa vulkan-radeon vulkan-icd-loader \
     libdrm libx11 libxrandr libxxf86vm libxcb systemd eigen hidapi libusb \
-    glslang rust desktop-file-utils openxr \
+    glslang rust desktop-file-utils openxr shaderc clang \
     || as_root pacman -Sy --needed --noconfirm git cmake ninja base-devel python mesa vulkan-radeon rust
   as_root pacman -Sy --needed --noconfirm lib32-mesa lib32-vulkan-radeon lib32-vulkan-icd-loader 2>/dev/null || \
     vive_warn "lib32 mesa not installed — Proton VR titles need it"
